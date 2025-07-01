@@ -1,3 +1,5 @@
+import PropTypes from "prop-types"; 
+
 function Layout({ children }) {
   return (
     <div className="min-h-screen bg-gray-50">
@@ -5,5 +7,9 @@ function Layout({ children }) {
     </div>
   );
 }
+
+Layout.propTypes = {
+  children: PropTypes.node,
+};
 
 export default Layout;

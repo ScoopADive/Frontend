@@ -1,13 +1,19 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import Navbar from '../components/layout/Navbar';
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Navbar from "../components/layout/Navbar";
 import LandingPage from "../pages/LandingPage";
-import HomePage from '../pages/HomePage';
-import LoginPage from '../pages/LoginPage';
-import SignUpPage from '../pages/SignUpPage';
-import LogCreatePage from '../pages/LogCreatePage';
-import LogDetailPage from '../pages/LogDetailPage';
-import MyPage from '../pages/MyPage';
-import ChatPage from '../pages/ChatPage';
+import HomePage from "../pages/HomePage";
+import LoginPage from "../pages/LoginPage";
+import ForgotPasswordPage from "../pages/ForgotPasswordPage";
+import SignUpPage from "../pages/SignUpPage";
+import LogCreatePage from "../pages/LogCreatePage";
+import LogDetailPage from "../pages/LogDetailPage";
+import MyPage from "../pages/MyPage";
+import ChatPage from "../pages/ChatPage";
+import ProtectedRoute from "./ProtectedRoute";
+import OAuth2RedirectHandler from "../pages/OAuth2RedirectHandler";
+import SettingsPage from "../pages/SettingsPage";
+import HelpPage from "../pages/HelpPage";
+import { AUTH_ROUTES } from "../constants/routes";
 
 export default function AppRouter() {
   return (
@@ -18,17 +24,50 @@ export default function AppRouter() {
         <Route path="/home" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignUpPage />} />
-        <Route path="/log/new" element={<LogCreatePage />} />
-        <Route path="/log/:id" element={<LogDetailPage />} />
-        
-        {/* 본인 마이페이지 */}
-        <Route path="/mypage" element={<MyPage isOwnPage={true} />} />
-        
-        {/* 친구 마이페이지 (username param 포함) */}
-        <Route path="/user/:username" element={<MyPage isOwnPage={false} />} />
-
-        {/* 채팅 */}
-        <Route path="/chat/:username" element={<ChatPage />} />
+        <Route path={AUTH_ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+        <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
+        <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+        <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
+        <Route
+          path="/log/new"
+          element={
+            <ProtectedRoute>
+              <LogCreatePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/log/:id"
+          element={
+            <ProtectedRoute>
+              <LogDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/mypage"
+          element={
+            <ProtectedRoute>
+              <MyPage isOwnPage={true} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/user/:username"
+          element={
+            <ProtectedRoute>
+              <MyPage isOwnPage={false} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/chat/:username"
+          element={
+            <ProtectedRoute>
+              <ChatPage />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Router>
   );
