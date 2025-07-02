@@ -17,23 +17,23 @@ function ForgotPasswordPage() {
   const [error, setError] = useState("");
 
   const handleSendCode = async () => {
-    if (!email) return setError("이메일을 입력해주세요.");
+    if (!email) return setError("Please enter your email.");
     setLoading(true);
     setError("");
 
     try {
       await authService.requestPasswordReset(email);
-      alert("인증 코드가 이메일로 전송되었습니다.");
+      alert("Verification code has been sent to your email.");
       setStep(2);
     } catch (err) {
-      setError(err.response?.data?.message || "코드 전송 실패");
+      setError(err.response?.data?.message || "Failed to send code.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleVerifyCode = async () => {
-    if (!code) return setError("인증 코드를 입력해주세요.");
+    if (!code) return setError("Please enter the verification code.");
     setLoading(true);
     setError("");
 
@@ -41,7 +41,7 @@ function ForgotPasswordPage() {
       await authService.verifyResetCode(email, code);
       setStep(3);
     } catch (err) {
-      setError(err.response?.data?.message || "코드 확인 실패");
+      setError(err.response?.data?.message || "Invalid verification code.");
     } finally {
       setLoading(false);
     }
@@ -49,7 +49,7 @@ function ForgotPasswordPage() {
 
   const handleResetPassword = async () => {
     if (newPassword !== confirmPassword) {
-      return setError("비밀번호가 일치하지 않습니다.");
+      return setError("Passwords do not match.");
     }
 
     setLoading(true);
@@ -57,10 +57,10 @@ function ForgotPasswordPage() {
 
     try {
       await authService.confirmNewPassword(email, newPassword);
-      alert("비밀번호가 재설정되었습니다. 로그인해주세요.");
+      alert("Your password has been reset. Please log in.");
       navigate(AUTH_ROUTES.LOGIN);
     } catch (err) {
-      setError(err.response?.data?.message || "재설정 실패");
+      setError(err.response?.data?.message || "Failed to reset password.");
     } finally {
       setLoading(false);
     }
@@ -70,7 +70,7 @@ function ForgotPasswordPage() {
     <Layout>
       <div className="max-w-md mx-auto mt-12 bg-white p-6 rounded-xl shadow-md space-y-4">
         <h1 className="text-2xl font-bold text-center text-blue-600">
-          🔐 비밀번호 재설정
+          Reset Password
         </h1>
 
         {error && <p className="text-red-500 text-sm text-center">{error}</p>}
@@ -78,12 +78,12 @@ function ForgotPasswordPage() {
         {step === 1 && (
           <>
             <Input
-              label="이메일"
+              label="Email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
             <Button
-              text={loading ? "전송 중..." : "인증 코드 전송"}
+              text={loading ? "Sending..." : "Send Verification Code"}
               onClick={handleSendCode}
             />
           </>
@@ -92,12 +92,12 @@ function ForgotPasswordPage() {
         {step === 2 && (
           <>
             <Input
-              label="인증 코드"
+              label="Verification Code"
               value={code}
               onChange={(e) => setCode(e.target.value)}
             />
             <Button
-              text={loading ? "확인 중..." : "인증 코드 확인"}
+              text={loading ? "Verifying..." : "Verify Code"}
               onClick={handleVerifyCode}
             />
           </>
@@ -106,19 +106,19 @@ function ForgotPasswordPage() {
         {step === 3 && (
           <>
             <Input
-              label="새 비밀번호"
+              label="New Password"
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
             />
             <Input
-              label="비밀번호 확인"
+              label="Confirm Password"
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
             <Button
-              text={loading ? "재설정 중..." : "비밀번호 재설정"}
+              text={loading ? "Resetting..." : "Reset Password"}
               onClick={handleResetPassword}
             />
           </>
@@ -129,7 +129,7 @@ function ForgotPasswordPage() {
             onClick={() => navigate(AUTH_ROUTES.LOGIN)}
             className="text-sm text-blue-500 hover:underline mt-4"
           >
-            ← 로그인으로 돌아가기
+            ← Back to Login
           </button>
         </div>
       </div>

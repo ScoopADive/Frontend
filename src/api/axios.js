@@ -48,7 +48,7 @@ api.interceptors.response.use(
 
       // refresh도 실패하면 로그아웃
       authService.logout();
-      window.location.href = "/login";
+      window.location.href = "/";
     }
 
     return Promise.reject(error);

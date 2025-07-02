@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
 import ChartBox from "../components/sections/ChartBox";
@@ -17,14 +17,15 @@ function MyPage({ isOwnPage = true }) {
 
   const [user, setUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [showBucketInput, setShowBucketInput] = useState(false);
   const [bucketList, setBucketList] = useState([]);
   const [newBucketTitle, setNewBucketTitle] = useState("");
   const [logs, setLogs] = useState([]);
+  const fileInputRef = useRef(null);
 
   const friends = ["Suzy", "Mina", "Jisoo", "Luca"];
 
   useEffect(() => {
-    // 더미 사용자 정보
     const dummyUser = {
       username: storeUser?.name || storeUser?.username || "Guest",
       email: storeUser?.email || "guest@example.com",
@@ -35,7 +36,6 @@ function MyPage({ isOwnPage = true }) {
 
     setUser(isOwnPage ? dummyUser : "not-found");
 
-    // 더미 로그 리스트
     const dummyLogs = [
       {
         id: 1,
@@ -56,7 +56,6 @@ function MyPage({ isOwnPage = true }) {
     ];
     setLogs(dummyLogs);
 
-    // 더미 버킷리스트
     setBucketList(["Maldives Diving", "Night Diving", "Current Diving Challenge"]);
   }, [username, isOwnPage, storeUser]);
 
@@ -65,6 +64,7 @@ function MyPage({ isOwnPage = true }) {
   };
 
   const toggleEdit = () => setIsEditing((prev) => !prev);
+  const toggleBucketInput = () => setShowBucketInput((prev) => !prev);
 
   const handleSaveProfile = () => {
     try {
@@ -73,27 +73,41 @@ function MyPage({ isOwnPage = true }) {
         email: user.email,
         name: user.username,
         country: user.license,
+        profilePhoto: user.profilePhoto,
       });
       setIsEditing(false);
-      alert("✅ 프로필이 저장되었습니다.");
+      alert("Profile saved successfully.");
     } catch (err) {
-      console.error("❌ 저장 실패", err);
-      alert("❌ 저장 실패");
+      console.error("Save failed", err);
+      alert("Failed to save profile.");
     }
   };
 
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+  };
+
   const handleAddBucket = () => {
-    if (!newBucketTitle.trim()) return alert("내용을 입력해주세요!");
+    if (!newBucketTitle.trim()) return alert("Please enter a title.");
     setBucketList((prev) => [...prev, newBucketTitle]);
     setNewBucketTitle("");
+    setShowBucketInput(false);
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setUser((prev) => ({ ...prev, profilePhoto: reader.result }));
+    };
+    reader.readAsDataURL(file);
   };
 
   if (user === "not-found") {
     return (
       <Layout>
-        <div className="text-center text-red-500 mt-10 text-lg">
-          ❌ 유저 정보를 찾을 수 없습니다.
-        </div>
+        <div className="text-center text-red-500 mt-10 text-lg">User not found.</div>
       </Layout>
     );
   }
@@ -109,7 +123,7 @@ function MyPage({ isOwnPage = true }) {
   return (
     <Layout>
       <div className="flex flex-col lg:flex-row gap-8 justify-center items-start">
-        {/* 좌측 사이드바 */}
+        {/* Sidebar */}
         <div className="w-full lg:w-[320px] space-y-6">
           <div className="bg-white p-6 rounded-xl shadow-md space-y-4 text-center">
             <img
@@ -117,40 +131,91 @@ function MyPage({ isOwnPage = true }) {
               alt="Profile"
               className="w-24 h-24 mx-auto rounded-full object-cover"
             />
+
             {isOwnPage && isEditing ? (
               <>
-                <input className="border p-2 w-full rounded" value={user.username} onChange={handleChange("username")} />
-                <input className="border p-2 w-full rounded" value={user.email} onChange={handleChange("email")} />
-                <input className="border p-2 w-full rounded" value={user.license} onChange={handleChange("license")} />
-                <input className="border p-2 w-full rounded" value={user.profilePhoto} onChange={handleChange("profilePhoto")} />
-                <textarea className="border p-2 w-full rounded" value={user.intro} onChange={handleChange("intro")} />
-                <button
-                  onClick={handleSaveProfile}
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
-                >
-                  Save
-                </button>
+                <div className="flex flex-col items-center space-y-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    ref={fileInputRef}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-sm text-blue-600 hover:underline"
+                  >
+                    Change Photo
+                  </button>
+                </div>
+                <input
+                  className="border p-2 w-full rounded"
+                  value={user.username}
+                  onChange={handleChange("username")}
+                />
+                <input
+                  className="border p-2 w-full rounded"
+                  value={user.email}
+                  onChange={handleChange("email")}
+                />
+                <input
+                  className="border p-2 w-full rounded"
+                  value={user.license}
+                  onChange={handleChange("license")}
+                />
+                <textarea
+                  className="border p-2 w-full rounded"
+                  value={user.intro}
+                  onChange={handleChange("intro")}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveProfile}
+                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </>
             ) : (
               <>
                 <h2 className="text-xl font-semibold text-gray-800">{user.username}</h2>
                 <p className="text-sm text-gray-500">{user.email}</p>
-                <p className="text-sm"><strong>License:</strong> {user.license}</p>
+                <p className="text-sm">
+                  <strong>License:</strong> {user.license}
+                </p>
                 <p className="text-gray-600">{user.intro}</p>
                 {isOwnPage ? (
-                  <button onClick={toggleEdit} className="mt-2 w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded">Edit Profile</button>
+                  <button
+                    onClick={toggleEdit}
+                    className="mt-2 w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded"
+                  >
+                    Edit Profile
+                  </button>
                 ) : (
-                  <button onClick={() => navigate(`/chat/${user.username}`)} className="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded">💬 Send Message</button>
+                  <button
+                    onClick={() => navigate(`/chat/${user.username}`)}
+                    className="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded"
+                  >
+                    💬 Send Message
+                  </button>
                 )}
               </>
             )}
           </div>
 
-          {/* 버킷리스트 */}
+          {/* Bucket List */}
           <div className="bg-white p-4 rounded-xl shadow-md">
             <h3 className="text-lg font-semibold mb-2 text-gray-800">📌 Bucket List</h3>
             {bucketList.length === 0 ? (
-              <p className="text-gray-500">등록된 버킷리스트가 없습니다.</p>
+              <p className="text-gray-500">No items added yet.</p>
             ) : (
               <ul className="list-disc list-inside text-gray-700 mb-2">
                 {bucketList.map((item, idx) => (
@@ -160,39 +225,67 @@ function MyPage({ isOwnPage = true }) {
             )}
             {isOwnPage && (
               <div className="mt-2 space-y-2">
-                <input
-                  className="w-full border rounded p-2"
-                  placeholder="Add new bucket item..."
-                  value={newBucketTitle}
-                  onChange={(e) => setNewBucketTitle(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleAddBucket()}
-                />
-                <button
-                  onClick={handleAddBucket}
-                  className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded font-semibold"
-                >
-                  Add to Bucket List
-                </button>
+                {showBucketInput && (
+                  <>
+                    <input
+                      className="w-full border rounded p-2"
+                      placeholder="Add new bucket item..."
+                      value={newBucketTitle}
+                      onChange={(e) => setNewBucketTitle(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleAddBucket()}
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleAddBucket}
+                        className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded font-semibold"
+                      >
+                        Add
+                      </button>
+                      <button
+                        onClick={toggleBucketInput}
+                        className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded font-semibold"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </>
+                )}
+                {!showBucketInput && (
+                  <button
+                    onClick={toggleBucketInput}
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded font-semibold"
+                  >
+                    Add Item
+                  </button>
+                )}
               </div>
             )}
           </div>
 
-          {/* 친구 목록 */}
+          {/* Friends List */}
           {isOwnPage && (
-            <div className="bg-white p-4 rounded-xl shadow-md">
+            <div className="bg-white p-4 rounded-xl shadow-md space-y-2">
               <h3 className="text-lg font-semibold mb-2 text-gray-800">👥 Friends</h3>
               <ul className="list-disc list-inside text-gray-700">
                 {friends.map((friend, idx) => (
                   <li key={idx}>
-                    <Link to={`/user/${friend}`} className="text-blue-600 hover:underline">{friend}</Link>
+                    <Link to={`/user/${friend}`} className="text-blue-600 hover:underline">
+                      {friend}
+                    </Link>
                   </li>
                 ))}
               </ul>
+              <button
+                onClick={() => alert("Friend adding functionality coming soon.")}
+                className="mt-2 w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded font-semibold"
+              >
+                Add Friend
+              </button>
             </div>
           )}
         </div>
 
-        {/* 우측 콘텐츠 */}
+        {/* Main Content */}
         <div className="flex-1 space-y-6">
           <SkillCard
             skill={{
@@ -204,10 +297,12 @@ function MyPage({ isOwnPage = true }) {
           />
 
           <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">📘 {isOwnPage ? "My" : `${user.username}'s`} Dive Logs</h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">
+              📘 {isOwnPage ? "My" : `${user.username}'s`} Dive Logs
+            </h3>
             {logs.length === 0 ? (
               <div className="w-full bg-gray-50 border border-dashed border-gray-300 rounded-xl p-6 text-center text-gray-600">
-                🪸 등록된 로그가 없습니다.
+                No logs available.
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -217,8 +312,11 @@ function MyPage({ isOwnPage = true }) {
               </div>
             )}
             <div className="text-right mt-2">
-              <button onClick={() => alert("전체 보기 페이지 준비 중")} className="text-blue-600 hover:underline text-sm">
-                 View All →
+              <button
+                onClick={() => alert("Coming soon")}
+                className="text-blue-600 hover:underline text-sm"
+              >
+                View All →
               </button>
             </div>
           </div>
@@ -229,7 +327,7 @@ function MyPage({ isOwnPage = true }) {
         </div>
       </div>
 
-      {/* 플로팅 버튼 */}
+      {/* Floating Button */}
       {isOwnPage && (
         <button
           onClick={() => navigate("/log/new")}
