@@ -170,7 +170,7 @@ function LogCreatePage() {
                 {section.id === "depth" && (
                   <>
                     <Input label="Bottom Time (e.g. 00:35:00)" value={form.bottom_time} onChange={handleChange("bottom_time")} />
-                    <Input label="Weight (kg)" type="number" value={form.weight} onChange={handleChange("weight")} />
+                    <Input label="Max Depth (m)" type="number" value={form.max_depth} onChange={handleChange("max_depth")} />
                   </>
                 )}
 
@@ -178,6 +178,26 @@ function LogCreatePage() {
                   <>
                     <Input label="Start Pressure" type="number" value={form.start_pressure} onChange={handleChange("start_pressure")} />
                     <Input label="End Pressure" type="number" value={form.end_pressure} onChange={handleChange("end_pressure")} />
+                    <Input label="Weight (kg)" type="number" value={form.weight} onChange={handleChange("weight")} />
+
+                    <label className="block text-sm font-medium text-gray-700">Suit (Enter to add)</label>
+                    <input
+                      type="text"
+                      onKeyDown={handleAddEquipment}
+                      placeholder="e.g., BCD, Octopus"
+                      className="border p-2 w-full rounded"
+                    />
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {form.equipment.map((item) => (
+                        <span
+                          key={item}
+                          className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-sm cursor-pointer"
+                          onClick={() => handleRemoveEquipment(item)}
+                        >
+                          {item} ✕
+                        </span>
+                      ))}
+                    </div>
                   </>
                 )}
 
@@ -218,26 +238,6 @@ function LogCreatePage() {
                       }
                     />
                     <Input label="Feeling" value={form.feeling} onChange={handleChange("feeling")} />
-                    <Input label="Max Depth (m)" type="number" value={form.max_depth} onChange={handleChange("max_depth")} />
-
-                    <label className="block text-sm font-medium text-gray-700">Equipment (Enter to add)</label>
-                    <input
-                      type="text"
-                      onKeyDown={handleAddEquipment}
-                      placeholder="e.g., BCD, Octopus"
-                      className="border p-2 w-full rounded"
-                    />
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {form.equipment.map((item) => (
-                        <span
-                          key={item}
-                          className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-sm cursor-pointer"
-                          onClick={() => handleRemoveEquipment(item)}
-                        >
-                          {item} ✕
-                        </span>
-                      ))}
-                    </div>
                   </>
                 )}
 
