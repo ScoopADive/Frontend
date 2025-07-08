@@ -162,7 +162,21 @@ function LogCreatePage() {
                       className="border p-2 w-full rounded"
                     />
                     <Input label="Dive Title" value={form.dive_title} onChange={handleChange("dive_title")} />
-                    <Input label="Dive Site" value={form.dive_site} onChange={handleChange("dive_site")} />
+                    
+                    <label className="block text-sm font-medium text-gray-700">Dive Site</label>
+                    <select
+                      value={form.dive_site}
+                      onChange={handleChange("dive_site")}
+                      className="border p-2 w-full rounded"
+                    >
+                      <option value="">Select dive site</option>
+                      <option value="Jeju">Jeju</option>
+                      <option value="Pohang">Pohang</option>
+                      <option value="Tulamben">Tulamben</option>
+                      <option value="Malapascua">Malapascua</option>
+                      <option value="Sipadan">Sipadan</option>
+                    </select>
+
                     <Input label="Dive Date" type="date" value={form.dive_date} onChange={handleChange("dive_date")} />
                   </>
                 )}
