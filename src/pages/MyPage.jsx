@@ -8,6 +8,7 @@ import TimelineBox from "../components/sections/TimelineBox";
 import LogCard from "../components/cards/LogCard";
 import useUserStore from "../store/userStore";
 import PropTypes from "prop-types";
+import logService from "../services/logService";
 
 function MyPage({ isOwnPage = true }) {
   const { username } = useParams();
@@ -36,25 +37,20 @@ function MyPage({ isOwnPage = true }) {
 
     setUser(isOwnPage ? dummyUser : "not-found");
 
-    const dummyLogs = [
-      {
-        id: 1,
-        title: "Bali Dive",
-        site: "Tulamben",
-        date: "2025-06-01",
-        depth: "26m",
-        bottomTime: "45min",
-      },
-      {
-        id: 2,
-        title: "Jeju Adventure",
-        site: "Seongsan",
-        date: "2025-05-22",
-        depth: "18m",
-        bottomTime: "38min",
-      },
-    ];
-    setLogs(dummyLogs);
+    const fetchLogs = async () => {
+      try {
+        const allLogs = await logService.getAllLogs();
+        const myLogs = allLogs.filter((log) => {
+          const buddyId = log?.buddy?.id || log?.buddy; 
+          return buddyId === storeUser?.id;
+        });
+        setLogs(myLogs);
+      } catch (err) {
+        console.error("로그 불러오기 실패", err);
+      }
+    };
+
+    fetchLogs();
 
     setBucketList(["Maldives Diving", "Night Diving", "Current Diving Challenge"]);
   }, [username, isOwnPage, storeUser]);
@@ -225,7 +221,7 @@ function MyPage({ isOwnPage = true }) {
             )}
             {isOwnPage && (
               <div className="mt-2 space-y-2">
-                {showBucketInput && (
+                {showBucketInput ? (
                   <>
                     <input
                       className="w-full border rounded p-2"
@@ -249,8 +245,7 @@ function MyPage({ isOwnPage = true }) {
                       </button>
                     </div>
                   </>
-                )}
-                {!showBucketInput && (
+                ) : (
                   <button
                     onClick={toggleBucketInput}
                     className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded font-semibold"
