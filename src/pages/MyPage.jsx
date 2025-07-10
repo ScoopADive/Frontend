@@ -6,6 +6,9 @@ import SkillCard from "../components/cards/SkillCard";
 import DiveMapBox from "../components/sections/DiveMapBox";
 import TimelineBox from "../components/sections/TimelineBox";
 import LogCard from "../components/cards/LogCard";
+import DiveHeatmapBox from "../components/sections/DiveHeatmapBox";
+import ExperienceBox from "../components/sections/ExperienceBox";
+import MarineLifeStatsBox from "../components/sections/MarineLifeStatsBox";
 import useUserStore from "../store/userStore";
 import PropTypes from "prop-types";
 import logService from "../services/logService";
@@ -41,7 +44,7 @@ function MyPage({ isOwnPage = true }) {
       try {
         const allLogs = await logService.getAllLogs();
         const myLogs = allLogs.filter((log) => {
-          const buddyId = log?.buddy?.id || log?.buddy; 
+          const buddyId = log?.buddy?.id || log?.buddy;
           return buddyId === storeUser?.id;
         });
         setLogs(myLogs);
@@ -119,7 +122,6 @@ function MyPage({ isOwnPage = true }) {
   return (
     <Layout>
       <div className="flex flex-col lg:flex-row gap-8 justify-center items-start">
-        {/* Sidebar */}
         <div className="w-full lg:w-[320px] space-y-6">
           <div className="bg-white p-6 rounded-xl shadow-md space-y-4 text-center">
             <img
@@ -127,7 +129,6 @@ function MyPage({ isOwnPage = true }) {
               alt="Profile"
               className="w-24 h-24 mx-auto rounded-full object-cover"
             />
-
             {isOwnPage && isEditing ? (
               <>
                 <div className="flex flex-col items-center space-y-2">
@@ -207,7 +208,6 @@ function MyPage({ isOwnPage = true }) {
             )}
           </div>
 
-          {/* Bucket List */}
           <div className="bg-white p-4 rounded-xl shadow-md">
             <h3 className="text-lg font-semibold mb-2 text-gray-800">📌 Bucket List</h3>
             {bucketList.length === 0 ? (
@@ -257,7 +257,6 @@ function MyPage({ isOwnPage = true }) {
             )}
           </div>
 
-          {/* Friends List */}
           {isOwnPage && (
             <div className="bg-white p-4 rounded-xl shadow-md space-y-2">
               <h3 className="text-lg font-semibold mb-2 text-gray-800">👥 Friends</h3>
@@ -280,7 +279,6 @@ function MyPage({ isOwnPage = true }) {
           )}
         </div>
 
-        {/* Main Content */}
         <div className="flex-1 space-y-6">
           <SkillCard
             skill={{
@@ -319,10 +317,12 @@ function MyPage({ isOwnPage = true }) {
           <ChartBox />
           <DiveMapBox />
           <TimelineBox />
+          <DiveHeatmapBox />
+          <ExperienceBox />
+          <MarineLifeStatsBox />
         </div>
       </div>
 
-      {/* Floating Button */}
       {isOwnPage && (
         <button
           onClick={() => navigate("/log/new")}
@@ -340,3 +340,4 @@ MyPage.propTypes = {
 };
 
 export default MyPage;
+
