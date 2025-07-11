@@ -2,20 +2,17 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
 import Input from "../components/common/Input";
-import Button from "../components/common/Button";
 import logService from "../services/logService";
 import useUserStore from "../store/userStore";
+import DiveSiteSelector from "../components/common/DiveSiteSelector";
 
 function LogCreatePage() {
   const navigate = useNavigate();
   const storeUser = useUserStore((state) => state.user);
 
   const [imagePreview, setImagePreview] = useState(null);
-  const [openSection, setOpenSection] = useState(null);
-
-  const toggleSection = (section) => {
-    setOpenSection(openSection === section ? null : section);
-  };
+  const [selectedImageName, setSelectedImageName] = useState("");
+  const [openSection, setOpenSection] = useState("general");
 
   const [form, setForm] = useState({
     dive_image: null,
@@ -23,6 +20,7 @@ function LogCreatePage() {
     buddy: "",
     dive_title: "",
     dive_site: "",
+    dive_coords: null,
     dive_date: "",
     max_depth: "",
     bottom_time: "",
@@ -52,6 +50,7 @@ function LogCreatePage() {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      setSelectedImageName(file.name);
       setForm((prev) => ({ ...prev, dive_image: file }));
       const reader = new FileReader();
       reader.onloadend = () => setImagePreview(reader.result);
@@ -80,6 +79,30 @@ function LogCreatePage() {
     }));
   };
 
+  const handleReset = () => {
+    if (!window.confirm("Are you sure you want to reset the entire form?")) return;
+    setForm({
+      dive_image: null,
+      feeling: "",
+      buddy: "",
+      dive_title: "",
+      dive_site: "",
+      dive_coords: null,
+      dive_date: "",
+      max_depth: "",
+      bottom_time: "",
+      weather: "sunny",
+      type_of_dive: "fun",
+      equipment: [],
+      weight: "",
+      start_pressure: "",
+      end_pressure: "",
+      dive_center: "",
+    });
+    setImagePreview(null);
+    setSelectedImageName("");
+  };
+
   const handleSubmit = async () => {
     try {
       const formData = new FormData();
@@ -97,6 +120,11 @@ function LogCreatePage() {
           const centerId = Number(value);
           if (centerId && !isNaN(centerId)) {
             formData.append("dive_center", centerId);
+          }
+        } else if (key === "dive_coords") {
+          if (value && Array.isArray(value)) {
+            formData.append("latitude", value[0]);
+            formData.append("longitude", value[1]);
           }
         } else if (value !== null && value !== "") {
           formData.append(key, value);
@@ -123,153 +151,164 @@ function LogCreatePage() {
     }
   };
 
+  const sections = [
+    { id: "general", title: "General Info (Required)" },
+    { id: "depth", title: "Depth / Time (Required)" },
+    { id: "equipment", title: "Equipment (Required)" },
+    { id: "environment", title: "Environment" },
+    { id: "experience", title: "Experience" },
+  ];
+
+  const requiredFields = [
+    "buddy",
+    "dive_title",
+    "dive_site",
+    "dive_date",
+    "bottom_time",
+    "max_depth",
+    "start_pressure",
+    "end_pressure",
+    "weight",
+  ];
+  const progressCount = requiredFields.filter((field) => form[field] && form[field] !== "").length;
+  const progressPercent = Math.floor((progressCount / requiredFields.length) * 100);
+
   return (
     <Layout>
-      <div className="max-w-2xl mx-auto py-8 px-4 space-y-4">
-        <h1 className="text-2xl font-bold mb-4">Create Dive Log</h1>
+      <div className="flex justify-between items-start gap-12">
+        {/* 좌측 입력 폼 */}
+        <div className="flex-1 space-y-4">
+          <h1 className="text-2xl font-bold mb-4">Create Dive Log</h1>
 
-        {[
-          { id: "general", title: "General Info (Required)" },
-          { id: "depth", title: "Depth / Time (Required)" },
-          { id: "equipment", title: "Equipment (Required)" },
-          { id: "environment", title: "Environment" },
-          { id: "experience", title: "Experience" },
-        ].map((section) => (
-          <div key={section.id} className="border rounded">
-            <button
-              className="w-full text-left px-4 py-3 font-semibold bg-gray-100 hover:bg-gray-200 transition"
-              onClick={() => toggleSection(section.id)}
-            >
-              + {section.title}
+          {sections.map((section) => (
+            <div key={section.id} className="border rounded overflow-hidden">
+              <button
+                className="w-full text-left px-6 py-3 font-semibold bg-gray-100 hover:bg-gray-200 transition"
+                onClick={() => setOpenSection(section.id)}
+              >
+                {openSection === section.id ? "−" : "+"} {section.title}
+              </button>
+
+              {openSection === section.id && (
+                <div className="p-6 space-y-4 bg-white border-t">
+                  {section.id === "general" && (
+                    <>
+                      <Input label="Buddy (user ID)" value={form.buddy} onChange={(e) => setForm((prev) => ({ ...prev, buddy: e.target.value.replace(/\D/g, "") }))} />
+                      <Input label="Dive Title" value={form.dive_title} onChange={handleChange("dive_title")} />
+                      <label className="block text-sm font-medium text-gray-700">Dive Site</label>
+                      <DiveSiteSelector
+                        value={form.dive_site}
+                        onChange={(name) => setForm((prev) => ({ ...prev, dive_site: name }))}
+                        onCoordsChange={(coords) => setForm((prev) => ({ ...prev, dive_coords: coords }))}
+                      />
+                      <Input label="Dive Date" type="date" value={form.dive_date} onChange={handleChange("dive_date")} />
+                    </>
+                  )}
+                  {section.id === "depth" && (
+                    <>
+                      <Input label="Bottom Time (e.g. 00:35:00)" value={form.bottom_time} onChange={handleChange("bottom_time")} />
+                      <Input label="Max Depth (m)" type="number" value={form.max_depth} onChange={handleChange("max_depth")} />
+                    </>
+                  )}
+                  {section.id === "equipment" && (
+                    <>
+                      <Input label="Start Pressure" type="number" value={form.start_pressure} onChange={handleChange("start_pressure")} />
+                      <Input label="End Pressure" type="number" value={form.end_pressure} onChange={handleChange("end_pressure")} />
+                      <Input label="Weight (kg)" type="number" value={form.weight} onChange={handleChange("weight")} />
+                      <label className="block text-sm font-medium text-gray-700">Equipment (Enter to add)</label>
+                      <input type="text" onKeyDown={handleAddEquipment} placeholder="e.g., BCD, Octopus" className="border p-2 w-full rounded" />
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {form.equipment.map((item) => (
+                          <span key={item} className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-sm cursor-pointer" onClick={() => handleRemoveEquipment(item)}>
+                            {item} ✕
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  {section.id === "environment" && (
+                    <>
+                      <label className="block text-sm font-medium text-gray-700">Weather</label>
+                      <select value={form.weather} onChange={handleChange("weather")} className="border p-2 w-full rounded">
+                        <option value="sunny">Sunny</option>
+                        <option value="cloudy">Cloudy</option>
+                        <option value="rainy">Rainy</option>
+                        <option value="stormy">Stormy</option>
+                      </select>
+                      <label className="block text-sm font-medium text-gray-700">Type of Dive</label>
+                      <select value={form.type_of_dive} onChange={handleChange("type_of_dive")} className="border p-2 w-full rounded">
+                        <option value="fun">Fun</option>
+                        <option value="training">Training</option>
+                        <option value="night">Night</option>
+                        <option value="deep">Deep</option>
+                        <option value="wreck">Wreck</option>
+                      </select>
+                    </>
+                  )}
+                  {section.id === "experience" && (
+                    <>
+                      <input type="file" accept="image/*" onChange={handleFileChange} />
+                      {selectedImageName && <p className="text-xs text-gray-500">Selected: {selectedImageName}</p>}
+                      {imagePreview && <img src={imagePreview} alt="Preview" className="w-full max-h-80 rounded-xl object-cover" />}
+                      <Input label="Dive Center (ID)" placeholder="Enter dive center ID" value={form.dive_center} onChange={(e) => setForm((prev) => ({ ...prev, dive_center: e.target.value.replace(/\D/g, "") }))} />
+                      <Input label="Feeling" value={form.feeling} onChange={handleChange("feeling")} />
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+
+          <div className="grid grid-cols-3 gap-4 mt-8">
+            <button onClick={handleReset} className="bg-red-400 text-white py-2.5 rounded-lg hover:bg-red-500 w-full">
+              Reset All
             </button>
-
-            {openSection === section.id && (
-              <div className="p-4 space-y-4 bg-white">
-
-                {section.id === "general" && (
-                  <>
-                    <label className="block text-sm font-medium text-gray-700">Buddy (user ID)</label>
-                    <input
-                      type="text"
-                      placeholder="Enter buddy user ID (ex. 1)"
-                      value={form.buddy}
-                      onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          buddy: e.target.value.replace(/\D/g, ""),
-                        }))
-                      }
-                      className="border p-2 w-full rounded"
-                    />
-                    <Input label="Dive Title" value={form.dive_title} onChange={handleChange("dive_title")} />
-                    
-                    <label className="block text-sm font-medium text-gray-700">Dive Site</label>
-                    <select
-                      value={form.dive_site}
-                      onChange={handleChange("dive_site")}
-                      className="border p-2 w-full rounded"
-                    >
-                      <option value="">Select dive site</option>
-                      <option value="Jeju">Jeju</option>
-                      <option value="Pohang">Pohang</option>
-                      <option value="Tulamben">Tulamben</option>
-                      <option value="Malapascua">Malapascua</option>
-                      <option value="Sipadan">Sipadan</option>
-                    </select>
-
-                    <Input label="Dive Date" type="date" value={form.dive_date} onChange={handleChange("dive_date")} />
-                  </>
-                )}
-
-                {section.id === "depth" && (
-                  <>
-                    <Input label="Bottom Time (e.g. 00:35:00)" value={form.bottom_time} onChange={handleChange("bottom_time")} />
-                    <Input label="Max Depth (m)" type="number" value={form.max_depth} onChange={handleChange("max_depth")} />
-                  </>
-                )}
-
-                {section.id === "equipment" && (
-                  <>
-                    <Input label="Start Pressure" type="number" value={form.start_pressure} onChange={handleChange("start_pressure")} />
-                    <Input label="End Pressure" type="number" value={form.end_pressure} onChange={handleChange("end_pressure")} />
-                    <Input label="Weight (kg)" type="number" value={form.weight} onChange={handleChange("weight")} />
-
-                    <label className="block text-sm font-medium text-gray-700">Suit (Enter to add)</label>
-                    <input
-                      type="text"
-                      onKeyDown={handleAddEquipment}
-                      placeholder="e.g., BCD, Octopus"
-                      className="border p-2 w-full rounded"
-                    />
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {form.equipment.map((item) => (
-                        <span
-                          key={item}
-                          className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-sm cursor-pointer"
-                          onClick={() => handleRemoveEquipment(item)}
-                        >
-                          {item} ✕
-                        </span>
-                      ))}
-                    </div>
-                  </>
-                )}
-
-                {section.id === "environment" && (
-                  <>
-                    <label className="block text-sm font-medium text-gray-700">Weather</label>
-                    <select value={form.weather} onChange={handleChange("weather")} className="border p-2 w-full rounded">
-                      <option value="sunny">Sunny</option>
-                      <option value="cloudy">Cloudy</option>
-                      <option value="rainy">Rainy</option>
-                      <option value="stormy">Stormy</option>
-                    </select>
-
-                    <label className="block text-sm font-medium text-gray-700">Type of Dive</label>
-                    <select value={form.type_of_dive} onChange={handleChange("type_of_dive")} className="border p-2 w-full rounded">
-                      <option value="fun">Fun</option>
-                      <option value="training">Training</option>
-                      <option value="night">Night</option>
-                      <option value="deep">Deep</option>
-                      <option value="wreck">Wreck</option>
-                    </select>
-                  </>
-                )}
-
-                {section.id === "experience" && (
-                  <>
-                    <input type="file" accept="image/*" onChange={handleFileChange} />
-                    {imagePreview && <img src={imagePreview} alt="Preview" className="w-full rounded" />}
-                    <Input
-                      label="Dive Center (ID)"
-                      placeholder="Enter dive center ID"
-                      value={form.dive_center}
-                      onChange={(e) =>
-                        setForm((prev) => ({
-                          ...prev,
-                          dive_center: e.target.value.replace(/\D/g, ""),
-                        }))
-                      }
-                    />
-                    <Input label="Feeling" value={form.feeling} onChange={handleChange("feeling")} />
-                  </>
-                )}
-
-              </div>
-            )}
+            <button className="bg-gray-500 text-white py-2.5 rounded-lg hover:bg-gray-600 w-full">
+              Save as Draft
+            </button>
+            <button onClick={handleSubmit} className="bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 w-full">
+              Publish
+            </button>
           </div>
-        ))}
+        </div>
 
-        <div className="grid grid-cols-2 gap-4 mt-8">
-          <button className="bg-gray-500 text-white py-3 rounded hover:bg-gray-600 w-full">
-            Save as Draft
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="bg-blue-600 text-white py-3 rounded hover:bg-blue-700 w-full"
-          >
-            Publish
-          </button>
+        {/* 우측 요약 박스 */}
+        <div className="w-[400px] space-y-6">
+          <div className="bg-white rounded-xl shadow p-4 text-sm space-y-2 leading-6">
+            <h2 className="text-lg font-semibold mb-2">Dive Summary</h2>
+            <p><strong>Title:</strong> {form.dive_title || "-"}</p>
+            <p><strong>Date:</strong> {form.dive_date || "-"}</p>
+            <p><strong>Site:</strong> {form.dive_site || "-"}</p>
+            <p><strong>Depth:</strong> {form.max_depth ? `${form.max_depth} m` : "-"}</p>
+            <p><strong>Time:</strong> {form.bottom_time || "-"}</p>
+            <p><strong>Equipment:</strong> {form.equipment.join(", ") || "-"}</p>
+            <p><strong>Feeling:</strong> {form.feeling || "-"}</p>
+
+            <div className="mt-3">
+              <div className="text-xs text-gray-500 mb-1">Progress: {progressPercent}%</div>
+              <div className="w-full bg-gray-200 rounded-full h-2.5">
+                <div className="bg-gradient-to-r from-blue-500 to-blue-400 h-2.5 rounded-full" style={{ width: `${progressPercent}%` }}></div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-gray-500 mb-2">Progress</h3>
+            <div className="flex flex-col gap-1 text-xs">
+              {sections.map((s) => (
+                <div
+                  key={s.id}
+                  className={`rounded px-2 py-1 ${
+                    openSection === s.id
+                      ? "bg-blue-100 text-blue-800 font-semibold"
+                      : "bg-gray-100 text-gray-600"
+                  }`}
+                >
+                  {s.title}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </Layout>
