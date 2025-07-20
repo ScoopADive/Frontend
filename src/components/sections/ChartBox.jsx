@@ -8,17 +8,25 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import dayjs from "dayjs";
 
-function ChartBox({ data }) {
-  // 더미 데이터
-  const dummyData = [
-    { date: "2025-06-01", depth: 18 },
-    { date: "2025-06-10", depth: 22 },
-    { date: "2025-06-18", depth: 15 },
-    { date: "2025-06-25", depth: 28 },
-  ];
+function ChartBox({ logs }) {
+  const transformed = (logs || [])
+    .filter((log) => log.dive_date && log.max_depth)
+    .map((log) => ({
+      date: dayjs(log.dive_date).format("YYYY-MM-DD"),
+      depth: Number(log.max_depth),
+    }))
+    .sort((a, b) => new Date(a.date) - new Date(b.date)); // 시간순 정렬
 
-  const chartData = data && data.length > 0 ? data : dummyData;
+  const chartData = transformed.length > 0
+    ? transformed
+    : [
+        { date: "2025-06-01", depth: 18 },
+        { date: "2025-06-10", depth: 22 },
+        { date: "2025-06-18", depth: 15 },
+        { date: "2025-06-25", depth: 28 },
+      ];
 
   return (
     <div className="bg-white p-4 rounded-lg shadow-md">
@@ -43,10 +51,10 @@ function ChartBox({ data }) {
 }
 
 ChartBox.propTypes = {
-  data: PropTypes.arrayOf(
+  logs: PropTypes.arrayOf(
     PropTypes.shape({
-      date: PropTypes.string.isRequired,
-      depth: PropTypes.number.isRequired,
+      dive_date: PropTypes.string,
+      max_depth: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
     })
   ),
 };

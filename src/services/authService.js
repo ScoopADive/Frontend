@@ -26,28 +26,34 @@ const authService = {
   },
 
   login: async (email, password) => {
-    try {
-      const data = await loginAPI(email, password);
-      const userName = data.name || data.username || "사용자";
+  try {
+    console.log("📥 로그인 요청 시작");
+    const data = await loginAPI(email, password);
+    console.log("🔐 로그인 응답 data:", data);
 
-      // 로컬스토리지 저장
-      localStorage.setItem(STORAGE_KEYS.ACCESS, data.access);
-      localStorage.setItem(STORAGE_KEYS.REFRESH, data.refresh);
-      localStorage.setItem(STORAGE_KEYS.EMAIL, data.email);
-      localStorage.setItem(STORAGE_KEYS.NAME, userName);
-      localStorage.setItem(STORAGE_KEYS.ID, data.id);
+    const userName = data.name || data.username || "사용자";
 
-      return {
-        ...data,
-        name: userName,
-        email: data.email,
-        id: data.id,
-      };
-    } catch (error) {
-      console.error("❌ 로그인 실패:", error);
-      throw error;
-    }
-  },
+    // 로컬스토리지 저장
+    localStorage.setItem(STORAGE_KEYS.ACCESS, data.access);
+    localStorage.setItem(STORAGE_KEYS.REFRESH, data.refresh);
+    localStorage.setItem(STORAGE_KEYS.EMAIL, data.email);
+    localStorage.setItem(STORAGE_KEYS.NAME, userName);
+    localStorage.setItem(STORAGE_KEYS.ID, data.id);
+
+    // Zustand에 넘길 사용자 객체 반환
+    return {
+      access: data.access,
+      refresh: data.refresh,
+      email: data.email,
+      name: userName,
+      id: data.id,
+    };
+  } catch (error) {
+    console.error("❌ 로그인 실패:", error);
+    throw error;
+  }
+},
+
 
   signup: async ({ email, username, password, country }) => {
     return await signUp({ email, username, password, country });

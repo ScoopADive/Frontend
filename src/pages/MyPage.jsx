@@ -30,33 +30,41 @@ function MyPage({ isOwnPage = true }) {
   const friends = ["Suzy", "Mina", "Jisoo", "Luca"];
 
   useEffect(() => {
-    const dummyUser = {
-      username: storeUser?.name || storeUser?.username || "Guest",
-      email: storeUser?.email || "guest@example.com",
-      license: storeUser?.country || "Open Water Diver",
-      profilePhoto: "https://via.placeholder.com/100",
-      intro: "Welcome to your scuba profile!",
-    };
+  const dummyUser = {
+    username: storeUser?.name || storeUser?.username || "Guest",
+    email: storeUser?.email || "guest@example.com",
+    license: storeUser?.country || "Open Water Diver",
+    profilePhoto: "https://via.placeholder.com/100",
+    intro: "Welcome to your scuba profile!",
+  };
 
-    setUser(isOwnPage ? dummyUser : "not-found");
+  setUser(isOwnPage ? dummyUser : "not-found");
 
-    const fetchLogs = async () => {
-      try {
-        const allLogs = await logService.getAllLogs();
-        const myLogs = allLogs.filter((log) => {
-          const buddyId = log?.buddy?.id || log?.buddy;
-          return buddyId === storeUser?.id;
-        });
-        setLogs(myLogs);
-      } catch (err) {
-        console.error("로그 불러오기 실패", err);
-      }
-    };
+  const fetchLogs = async () => {
+    try {
+      const allLogs = await logService.getAllLogs();
 
-    fetchLogs();
+      console.log("📌 storeUser:", storeUser);
+      console.log("📌 log.user:", log.user);
+      console.log("📌 log.author:", log.author);
 
-    setBucketList(["Maldives Diving", "Night Diving", "Current Diving Challenge"]);
-  }, [username, isOwnPage, storeUser]);
+      // 실제 작성자 기준 필터링
+      const myLogs = allLogs.filter((log) => {
+        const authorId = log?.user?.id || log?.author?.id || log?.author || log?.user;
+        return authorId === storeUser?.id;
+      });
+
+      setLogs(myLogs);
+    } catch (err) {
+      console.error("로그 불러오기 실패", err);
+    }
+  };
+
+  fetchLogs();
+
+  setBucketList(["Maldives Diving", "Night Diving", "Current Diving Challenge"]);
+}, [username, isOwnPage, storeUser]);
+
 
   const handleChange = (field) => (e) => {
     setUser((prev) => ({ ...prev, [field]: e.target.value }));
@@ -314,7 +322,7 @@ function MyPage({ isOwnPage = true }) {
             </div>
           </div>
 
-          <ChartBox />
+          <ChartBox logs={logs} />
           <DiveMapBox />
           <TimelineBox />
           <DiveHeatmapBox />
