@@ -41,24 +41,18 @@ function MyPage({ isOwnPage = true }) {
   setUser(isOwnPage ? dummyUser : "not-found");
 
   const fetchLogs = async () => {
-    try {
-      const allLogs = await logService.getAllLogs();
-
-      console.log("📌 storeUser:", storeUser);
-      console.log("📌 log.user:", log.user);
-      console.log("📌 log.author:", log.author);
-
-      // 실제 작성자 기준 필터링
-      const myLogs = allLogs.filter((log) => {
-        const authorId = log?.user?.id || log?.author?.id || log?.author || log?.user;
-        return authorId === storeUser?.id;
-      });
-
-      setLogs(myLogs);
-    } catch (err) {
-      console.error("로그 불러오기 실패", err);
+  try {
+    const logs = await logService.getMyLogs();
+    if (!Array.isArray(logs)) {
+      console.warn("🚫 응답이 배열이 아님:", logs);
+      return;
     }
-  };
+    setLogs(logs);
+
+  } catch (err) {
+    console.error("❌ 내 로그 불러오기 실패:", err);
+  }
+};
 
   fetchLogs();
 

@@ -1,5 +1,6 @@
 import {
   getAllLogs,
+  getMyLogs,
   getLogById,
   createLog,
   deleteLog,
@@ -9,6 +10,7 @@ import api from "../api/axios";
 
 const logService = {
   getAllLogs,
+  getMyLogs,
   getLogById,
   createLog,
   deleteLog,
@@ -29,3 +31,4 @@ const logService = {
 };
 
 export default logService;
+

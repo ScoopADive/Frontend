@@ -1,8 +1,15 @@
 import api from "./axios";
 
+// 내 로그만 불러오기
+export const getMyLogs = async () => {
+  const res = await api.get("/logbooks/my_logbooks/");
+  return res.data;
+};
+
 // 전체 로그 불러오기
 export const getAllLogs = async () => {
   const res = await api.get("/logbooks/");
+  console.log("🧾 getAllLogs 응답:", res.data); 
   return res.data;
 };
 
