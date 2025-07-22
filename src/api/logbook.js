@@ -6,11 +6,21 @@ export const getMyLogs = async () => {
   return res.data;
 };
 
-// 전체 로그 불러오기
+// 전체 로그 불러오기 (모든 페이지 순회)
 export const getAllLogs = async () => {
-  const res = await api.get("/logbooks/");
-  console.log("🧾 getAllLogs 응답:", res.data); 
-  return res.data;
+  let results = [];
+  let nextUrl = "/logbooks/?page_size=100";
+
+  while (nextUrl) {
+    const res = await api.get(nextUrl);
+    const data = res.data;
+
+    results = results.concat(data.results);
+    nextUrl = data.next?.replace("http://13.125.160.47", ""); // API 주소 정리
+  }
+
+  console.log("✅ 모든 로그 불러오기 완료:", results.length, "개");
+  return results;
 };
 
 // 특정 로그 조회

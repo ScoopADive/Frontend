@@ -308,7 +308,7 @@ function MyPage({ isOwnPage = true }) {
             )}
             <div className="text-right mt-2">
               <button
-                onClick={() => alert("Coming soon")}
+                onClick={() => navigate("/logs")}
                 className="text-blue-600 hover:underline text-sm"
               >
                 View All →

@@ -11,6 +11,8 @@ function LogDetailPage() {
   const [form, setForm] = useState({});
   const [imagePreview, setImagePreview] = useState(null);
 
+  const BASE_URL = "http://13.125.160.47";
+
   const formFields = [
     ["dive_title", "Title"],
     ["dive_site", "Site"],
@@ -32,6 +34,7 @@ function LogDetailPage() {
     const fetchLog = async () => {
       try {
         const result = await logService.getLogById(id);
+        console.log("dive_image:", result.dive_image);
         setLog(result);
         setForm({
           ...result,
@@ -39,8 +42,11 @@ function LogDetailPage() {
             ? result.equipment
             : result.equipment?.split(",") || [],
         });
+
         if (result.dive_image) {
-          setImagePreview(result.dive_image);
+          const isFullURL = result.dive_image.startsWith("http");
+          const imageURL = isFullURL ? result.dive_image : `${BASE_URL}${result.dive_image}`;
+          setImagePreview(imageURL);
         }
       } catch (err) {
         alert("❌ 로그 정보를 불러오지 못했습니다");
@@ -123,14 +129,20 @@ function LogDetailPage() {
           <h1 className="text-2xl font-bold text-blue-700 mb-2">Dive Log Detail</h1>
           {!isEditing && (
             <button onClick={() => setIsEditing(true)} className="text-sm text-blue-600 underline">
-              ✏️ Edit Log
+              Edit Log
             </button>
           )}
         </div>
 
         <p className="text-sm text-gray-500">Log ID: {id}</p>
 
-        {imagePreview && <img src={imagePreview} alt="Preview" className="w-full rounded" />}
+        {imagePreview && (
+          <img
+            src={imagePreview}
+            alt="Dive"
+            className="w-full rounded mb-4 max-h-[400px] object-cover"
+          />
+        )}
         {isEditing && (
           <input type="file" accept="image/*" onChange={handleFileChange} className="w-full mb-2" />
         )}
@@ -155,7 +167,7 @@ function LogDetailPage() {
 
         {isEditing ? (
           <div className="flex gap-2">
-            <button onClick={handleUpdate} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded">💾 Save</button>
+            <button onClick={handleUpdate} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded">Save</button>
             <button onClick={() => setIsEditing(false)} className="w-full bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 px-4 rounded">Cancel</button>
           </div>
         ) : (
@@ -163,7 +175,7 @@ function LogDetailPage() {
             onClick={handleDelete}
             className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded"
           >
-            🗑️ Delete Log
+            Delete Log
           </button>
         )}
       </div>

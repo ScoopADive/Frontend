@@ -13,6 +13,7 @@ import ProtectedRoute from "./ProtectedRoute";
 import OAuth2RedirectHandler from "../pages/OAuth2RedirectHandler";
 import SettingsPage from "../pages/SettingsPage";
 import HelpPage from "../pages/HelpPage";
+import AllLogsPage from "../pages/AllLogsPage"; 
 import { AUTH_ROUTES } from "../constants/routes";
 
 export default function AppRouter() {
@@ -27,7 +28,8 @@ export default function AppRouter() {
         <Route path={AUTH_ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
         <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
         <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-        <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
+        <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />       
+        <Route path="/logs" element={<AllLogsPage />} />
         <Route
           path="/log/new"
           element={
