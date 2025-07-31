@@ -27,7 +27,7 @@ function LogDetailPage() {
     ["end_pressure", "End Pressure"],
     ["dive_center", "Dive Center (ID)"],
     ["buddy", "Buddy (User ID)"],
-    ["feeling", "Feeling"]
+    ["feeling", "Feeling"],
   ];
 
   useEffect(() => {
@@ -35,17 +35,22 @@ function LogDetailPage() {
       try {
         const result = await logService.getLogById(id);
         console.log("dive_image:", result.dive_image);
+
         setLog(result);
         setForm({
           ...result,
           equipment: Array.isArray(result.equipment)
             ? result.equipment
             : result.equipment?.split(",") || [],
+          buddy: result.buddy?.id || "",
+          dive_center: result.dive_center?.id || "",
         });
 
         if (result.dive_image) {
           const isFullURL = result.dive_image.startsWith("http");
-          const imageURL = isFullURL ? result.dive_image : `${BASE_URL}${result.dive_image}`;
+          const imageURL = isFullURL
+            ? result.dive_image
+            : `${BASE_URL}${result.dive_image}`;
           setImagePreview(imageURL);
         }
       } catch (err) {
@@ -87,18 +92,24 @@ function LogDetailPage() {
       const formData = new FormData();
 
       if (form.equipment) {
-        const eqList = typeof form.equipment === "string"
-          ? form.equipment.split(",").map((e) => e.trim())
-          : form.equipment;
+        const eqList =
+          typeof form.equipment === "string"
+            ? form.equipment.split(",").map((e) => e.trim())
+            : form.equipment;
         eqList.forEach((eq) => formData.append("equipment", eq));
       }
 
       Object.entries(form).forEach(([key, value]) => {
-        if (value !== null && value !== "" && key !== "equipment") {
-          if (key === "buddy") {
-            formData.append("buddy", `/users/${value}/`);
-          } else if (key === "dive_center") {
-            formData.append("dive_center", `/dive-centers/${value}/`);
+        if (
+          value !== null &&
+          value !== "" &&
+          key !== "equipment" &&
+          key !== "likes" // 백엔드에서 오류나는 필드 제거
+        ) {
+          if (key === "dive_image") {
+            if (value instanceof File) {
+              formData.append("dive_image", value);
+            }
           } else {
             formData.append(key, value);
           }
@@ -110,6 +121,7 @@ function LogDetailPage() {
       alert("✅ Log updated successfully");
       setIsEditing(false);
     } catch (err) {
+      console.error("❌ Failed to update log", err.response?.data || err);
       alert("❌ Failed to update log");
     }
   };
@@ -128,7 +140,10 @@ function LogDetailPage() {
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold text-blue-700 mb-2">Dive Log Detail</h1>
           {!isEditing && (
-            <button onClick={() => setIsEditing(true)} className="text-sm text-blue-600 underline">
+            <button
+              onClick={() => setIsEditing(true)}
+              className="text-sm text-blue-600 underline"
+            >
               Edit Log
             </button>
           )}
@@ -144,7 +159,12 @@ function LogDetailPage() {
           />
         )}
         {isEditing && (
-          <input type="file" accept="image/*" onChange={handleFileChange} className="w-full mb-2" />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="w-full mb-2"
+          />
         )}
 
         <div className="space-y-2 text-gray-700">
@@ -158,8 +178,10 @@ function LogDetailPage() {
                   value={form[key] || ""}
                   onChange={handleChange(key)}
                 />
+              ) : Array.isArray(log[key]) ? (
+                log[key].join(", ")
               ) : (
-                Array.isArray(log[key]) ? log[key].join(", ") : log[key] ?? "None"
+                log[key] ?? "None"
               )}
             </p>
           ))}
@@ -167,8 +189,18 @@ function LogDetailPage() {
 
         {isEditing ? (
           <div className="flex gap-2">
-            <button onClick={handleUpdate} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded">Save</button>
-            <button onClick={() => setIsEditing(false)} className="w-full bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 px-4 rounded">Cancel</button>
+            <button
+              onClick={handleUpdate}
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
+            >
+              Save
+            </button>
+            <button
+              onClick={() => setIsEditing(false)}
+              className="w-full bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-2 px-4 rounded"
+            >
+              Cancel
+            </button>
           </div>
         ) : (
           <button

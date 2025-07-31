@@ -17,18 +17,17 @@ const logService = {
 
   updateLog: async (id, formData) => {
     try {
-      const res = await api.put(`/logbooks/${id}/`, formData, {
+      const res = await api.patch(`/logbooks/${id}/`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       });
       return res.data;
     } catch (err) {
-      console.error("❌ 로그 수정 실패:", err);
+      console.error("❌ 로그 수정 실패:", err.response?.data || err);
       throw err;
     }
   },
 };
 
 export default logService;
-
