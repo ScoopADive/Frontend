@@ -58,7 +58,7 @@ function ForgotPasswordPage() {
     try {
       await authService.confirmNewPassword(email, newPassword);
       alert("Your password has been reset. Please log in.");
-      navigate(AUTH_ROUTES.LOGIN);
+      navigate(AUTH_ROUTES.SIGNIN);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to reset password.");
     } finally {
@@ -126,10 +126,10 @@ function ForgotPasswordPage() {
 
         <div className="text-center">
           <button
-            onClick={() => navigate(AUTH_ROUTES.LOGIN)}
+            onClick={() => navigate(AUTH_ROUTES.SIGNIN)}
             className="text-sm text-blue-500 hover:underline mt-4"
           >
-            ← Back to Login
+            ← Back to Sign In
           </button>
         </div>
       </div>

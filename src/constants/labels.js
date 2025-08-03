@@ -1,5 +1,4 @@
 export const AUTH_LABELS = {
-  LOGIN: "Login",
   SIGN_IN: "Sign In",
   SIGN_UP: "Sign Up",
   CONTINUE_WITH_GOOGLE: "Continue with Google",

@@ -36,7 +36,7 @@ function HeroSection() {
         transition={{ delay: 0.7, duration: 0.8 }}
         className="flex justify-center gap-4 w-full max-w-md"
       >
-        <Button text="Sign In" onClick={() => navigate("/login")} />
+        <Button text="Sign In" onClick={() => navigate("/signin")} />
         <Button text="Sign Up" onClick={() => navigate("/signup")} />
       </motion.div>
     </motion.section>

@@ -7,7 +7,7 @@ import { Search, PlusCircle, Bell } from "lucide-react";
 function Navbar() {
   const location = useLocation();
   const { user } = useUserStore();
-  const isAuthPage = location.pathname === "/login" || location.pathname === "/signup";
+  const isAuthPage = location.pathname === "/signin" || location.pathname === "/signup";
   const [hasNewMessage] = useState(true);
 
   const [showSearch, setShowSearch] = useState(false);
@@ -96,9 +96,9 @@ function Navbar() {
           <ul className="flex items-center space-x-6 text-sm font-medium text-gray-600">
             <li>
               <Link
-                to="/login"
+                to="/signin"
                 className={`hover:text-blue-500 transition ${
-                  location.pathname === "/login" ? "text-blue-600 font-semibold" : ""
+                  location.pathname === "/signin" ? "text-blue-600 font-semibold" : ""
                 }`}
               >
                 Sign In

@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
 import LandingPage from "../pages/LandingPage";
 import HomePage from "../pages/HomePage";
-import LoginPage from "../pages/LoginPage";
+import SignInPage from "../pages/SignInPage";
 import ForgotPasswordPage from "../pages/ForgotPasswordPage";
 import SignUpPage from "../pages/SignUpPage";
 import LogCreatePage from "../pages/LogCreatePage";
@@ -23,7 +23,7 @@ export default function AppRouter() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/home" element={<HomePage />} />
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signin" element={<SignInPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path={AUTH_ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
         <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />

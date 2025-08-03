@@ -52,12 +52,12 @@ function SignUpPage() {
       alert("🎉 회원가입이 완료되었습니다!");
 
       try {
-        const data = await authService.login(form.email, form.password);
+        const data = await authService.signin(form.email, form.password);
         setUser({ id: data.id, email: data.email, name: data.name });
         navigate(AUTH_ROUTES.HOME);
       } catch {
         alert("자동 로그인 실패. 로그인 페이지로 이동합니다.");
-        navigate(AUTH_ROUTES.LOGIN);
+        navigate(AUTH_ROUTES.SIGNIN);
       }
     } catch (err) {
       alert("❌ 회원가입에 실패했습니다.");
@@ -131,7 +131,7 @@ function SignUpPage() {
         <div className="text-center text-sm text-gray-600 mt-4">
           이미 계정을 가지고 계신가요?{" "}
           <Link
-            to="/login"
+            to="/signin"
             className="text-blue-600 hover:text-blue-700 font-semibold"
           >
             로그인

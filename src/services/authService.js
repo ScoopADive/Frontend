@@ -1,6 +1,6 @@
 import api from "../api/axios";
 import {
-  login as loginAPI,
+  signIn as signInAPI,
   signUp,
   requestPasswordReset,
   verifyResetCode,
@@ -25,10 +25,10 @@ const authService = {
     window.location.href = `${API_URL}/oauth2/authorization/google`;
   },
 
-  login: async (email, password) => {
+  signin: async (email, password) => {
   try {
     console.log("📥 로그인 요청 시작");
-    const data = await loginAPI(email, password);
+    const data = await signInAPI(email, password);
     console.log("🔐 로그인 응답 data:", data);
 
     const userName = data.name || data.username || "사용자";
@@ -114,7 +114,7 @@ api.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401) {
       authService.logout();
-      window.location.href = "/login";
+      window.location.href = "/signin";
     }
     return Promise.reject(error);
   }

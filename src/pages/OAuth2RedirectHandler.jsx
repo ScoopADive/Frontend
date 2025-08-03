@@ -28,7 +28,7 @@ const OAuth2RedirectHandler = () => {
       navigate("/mypage"); // 로그인 후 마이페이지로 이동
     } else {
       alert("로그인 처리에 실패했습니다.");
-      navigate("/login");
+      navigate("/signin");
     }
   }, [location, navigate, setUser]);
 

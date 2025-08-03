@@ -14,7 +14,7 @@ import {
   AUTH_MESSAGES,
 } from "../constants";
 
-function LoginPage() {
+function SignInPage() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -27,7 +27,7 @@ function LoginPage() {
     setError("");
 
     try {
-      const data = await authService.login(form.email, form.password);
+      const data = await authService.signin(form.email, form.password);
       console.log("로그인 결과:", data);
      
       // localStorage에 저장 (authService에서 이미 하고 있지만 안전하게 보강)
@@ -114,4 +114,4 @@ function LoginPage() {
   );
 }
 
-export default LoginPage;
+export default SignInPage;
