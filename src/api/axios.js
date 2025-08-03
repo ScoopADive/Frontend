@@ -2,7 +2,7 @@ import axios from "axios";
 import authService from "../services/authService"; // 자동 갱신을 위해 추가
 
 const api = axios.create({
-  baseURL: "http://13.125.160.47",
+  baseURL: "http://scoopadive.com",
   headers: {
     "Content-Type": "application/json",
   },

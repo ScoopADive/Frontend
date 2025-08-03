@@ -11,7 +11,7 @@ function LogDetailPage() {
   const [form, setForm] = useState({});
   const [imagePreview, setImagePreview] = useState(null);
 
-  const BASE_URL = "http://13.125.160.47";
+  const BASE_URL = "http://scoopadive.com";
 
   const formFields = [
     ["dive_title", "Title"],

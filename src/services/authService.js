@@ -18,7 +18,7 @@ const STORAGE_KEYS = {
   ID: "id",
 };
 
-const API_URL = "http://13.125.160.47/auths";
+const API_URL = "http://scoopadive.com/auths";
 
 const authService = {
   googleLogin: () => {
