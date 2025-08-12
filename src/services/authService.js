@@ -18,11 +18,11 @@ const STORAGE_KEYS = {
   ID: 'id',
 };
 
-const API_URL = 'https://scoopadive.com/api/auths';
+const API_URL = 'https://scoopadive.com';
 
 const authService = {
   googleLogin: () => {
-    window.location.href = `${API_URL}/oauth2/authorization/google`;
+    window.location.href = `${API_URL}/api/accounts/google/login/`;
   },
 
   signin: async (email, password) => {
