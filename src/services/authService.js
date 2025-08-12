@@ -113,7 +113,7 @@ api.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401) {
       authService.logout();
-      window.location.href = '/api/signin';
+      window.location.href = '/api/auths/signin';
     }
     return Promise.reject(error);
   },
