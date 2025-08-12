@@ -11,7 +11,7 @@ const logService = {
 
   updateLog: async (id, formData) => {
     try {
-      const res = await api.patch(`/logbooks/${id}/`, formData, {
+      const res = await api.patch(`logbooks/${id}/`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

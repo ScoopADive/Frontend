@@ -2,7 +2,7 @@ import axios from 'axios';
 import authService from '../services/authService'; // 자동 갱신을 위해 추가
 
 const api = axios.create({
-  baseURL: 'https://scoopadive.com/api',
+  baseURL: 'https://scoopadive.com/api/',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -30,8 +30,8 @@ api.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url.includes('/auths/signin') &&
-      !originalRequest.url.includes('/auths/signup')
+      !originalRequest.url.includes('auths/signin') &&
+      !originalRequest.url.includes('auths/signup')
     ) {
       originalRequest._retry = true;
 
