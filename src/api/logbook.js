@@ -16,7 +16,7 @@ export const getAllLogs = async () => {
     const data = res.data;
 
     results = results.concat(data.results);
-    nextUrl = data.next?.replace('http://scoopadive.com', ''); // API 주소 정리
+    nextUrl = data.next?.replace('https://scoopadive.com', ''); // API 주소 정리
   }
 
   console.log('✅ 모든 로그 불러오기 완료:', results.length, '개');
