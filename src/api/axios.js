@@ -30,8 +30,8 @@ api.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&
-      !originalRequest.url.includes('/api/auths/signin') &&
-      !originalRequest.url.includes('/api/auths/signup')
+      !originalRequest.url.includes('/auths/signin') &&
+      !originalRequest.url.includes('/auths/signup')
     ) {
       originalRequest._retry = true;
 
