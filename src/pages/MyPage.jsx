@@ -13,6 +13,11 @@ import useUserStore from "../store/userStore";
 import PropTypes from "prop-types";
 import logService from "../services/logService";
 
+// 추가: 실제 버킷 API 사용
+import bucketService from "../services/bucketService";
+// 선택: 프로필 저장을 서버로 보내고 싶으면 userService를 사용
+import userService from "../services/userService";
+
 function MyPage({ isOwnPage = true }) {
   const { username } = useParams();
   const navigate = useNavigate();
@@ -30,35 +35,43 @@ function MyPage({ isOwnPage = true }) {
   const friends = ["Suzy", "Mina", "Jisoo", "Luca"];
 
   useEffect(() => {
-  const dummyUser = {
-    username: storeUser?.name || storeUser?.username || "Guest",
-    email: storeUser?.email || "guest@example.com",
-    license: storeUser?.country || "Open Water Diver",
-    profilePhoto: "https://via.placeholder.com/100",
-    intro: "Welcome to your scuba profile!",
-  };
+    const dummyUser = {
+      id: storeUser?.id ?? null,
+      username: storeUser?.name || storeUser?.username || "Guest",
+      email: storeUser?.email || "guest@example.com",
+      license: storeUser?.country || "Open Water Diver",
+      profilePhoto: storeUser?.profilePhoto || storeUser?.profile_image || "https://via.placeholder.com/100",
+      intro: storeUser?.intro || "Welcome to your scuba profile!",
+    };
 
-  setUser(isOwnPage ? dummyUser : "not-found");
+    setUser(isOwnPage ? dummyUser : "not-found");
 
-  const fetchLogs = async () => {
-  try {
-    const logs = await logService.getMyLogs();
-    if (!Array.isArray(logs)) {
-      console.warn("🚫 응답이 배열이 아님:", logs);
-      return;
-    }
-    setLogs(logs);
+    const fetchLogs = async () => {
+      try {
+        const logs = await logService.getMyLogs();
+        if (!Array.isArray(logs)) {
+          console.warn("응답이 배열이 아님:", logs);
+          return;
+        }
+        setLogs(logs);
+      } catch (err) {
+        console.error("❌ 내 로그 불러오기 실패:", err);
+      }
+    };
 
-  } catch (err) {
-    console.error("❌ 내 로그 불러오기 실패:", err);
-  }
-};
+    const fetchBuckets = async () => {
+      try {
+        const list = await bucketService.getList(1); // 서버에서 현재 목록 가져오기
+        setBucketList(Array.isArray(list) ? list : []);
+      } catch (err) {
+        console.error("❌ 버킷리스트 불러오기 실패:", err);
+        setBucketList([]);
+      }
+    };
 
-  fetchLogs();
-
-  setBucketList(["Maldives Diving", "Night Diving", "Current Diving Challenge"]);
-}, [username, isOwnPage, storeUser]);
-
+    fetchLogs();
+    fetchBuckets();
+  }, [username, isOwnPage, storeUser]);
 
   const handleChange = (field) => (e) => {
     setUser((prev) => ({ ...prev, [field]: e.target.value }));
@@ -67,15 +80,49 @@ function MyPage({ isOwnPage = true }) {
   const toggleEdit = () => setIsEditing((prev) => !prev);
   const toggleBucketInput = () => setShowBucketInput((prev) => !prev);
 
-  const handleSaveProfile = () => {
+  // 프로필 저장: 파일이 있으면 FormData, 없으면 JSON 사용
+  const handleSaveProfile = async () => {
     try {
+      // 서버에도 반영하려면 userService 사용
+      if (user?.id) {
+        let payload;
+        const hasFile = false; // 이 페이지에서는 미리보기만 하므로 파일 필드는 별도 관리시 true로 바꿔 사용
+        if (hasFile) {
+          const fd = new FormData();
+          fd.append("username", user.username || "");
+          fd.append("email", user.email || "");
+          fd.append("country", user.license || "");
+          fd.append("intro", user.intro || "");
+          // fd.append("profile_image", fileObj)  // 파일을 관리한다면 추가
+          payload = fd;
+        } else {
+          payload = {
+            username: user.username || "",
+            email: user.email || "",
+            country: user.license || "",
+            intro: user.intro || "",
+          };
+        }
+        // 실패해도 로컬 업데이트는 유지
+        try {
+          await userService.updateProfile(user.id, payload);
+        } catch (e) {
+          console.warn("서버 프로필 저장 실패(로컬만 갱신):", e?.response?.data || e.message);
+        }
+      }
+
+      // 로컬 스토어 갱신
       updateUser({
         id: storeUser?.id,
         email: user.email,
         name: user.username,
         country: user.license,
         profilePhoto: user.profilePhoto,
+        profile_image: user.profilePhoto,
+        intro: user.intro,
+        username: user.username,
       });
+
       setIsEditing(false);
       alert("Profile saved successfully.");
     } catch (err) {
@@ -88,15 +135,23 @@ function MyPage({ isOwnPage = true }) {
     setIsEditing(false);
   };
 
-  const handleAddBucket = () => {
-    if (!newBucketTitle.trim()) return alert("Please enter a title.");
-    setBucketList((prev) => [...prev, newBucketTitle]);
-    setNewBucketTitle("");
-    setShowBucketInput(false);
+  // 서버로 생성 요청 보내는 버킷 추가
+  const handleAddBucket = async () => {
+    const title = newBucketTitle.trim();
+    if (!title) return alert("Please enter a title.");
+    try {
+      const created = await bucketService.create(title, storeUser?.id ?? null);
+      setBucketList((prev) => [created, ...prev]); // 서버가 돌려준 아이템을 화면에 반영
+      setNewBucketTitle("");
+      setShowBucketInput(false);
+    } catch (err) {
+      console.error("❌ 버킷리스트 추가 실패:", err?.response?.data || err.message);
+      alert("Failed to add bucket item.");
+    }
   };
 
   const handleImageUpload = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -216,8 +271,8 @@ function MyPage({ isOwnPage = true }) {
               <p className="text-gray-500">No items added yet.</p>
             ) : (
               <ul className="list-disc list-inside text-gray-700 mb-2">
-                {bucketList.map((item, idx) => (
-                  <li key={idx}>{item}</li>
+                {bucketList.map((item) => (
+                  <li key={item.id ?? item}>{item.title ?? item}</li>
                 ))}
               </ul>
             )}
