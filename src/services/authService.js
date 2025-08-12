@@ -1,4 +1,4 @@
-import api from "../api/axios";
+import api from '../api/axios';
 import {
   signIn as signInAPI,
   signUp,
@@ -6,19 +6,19 @@ import {
   verifyResetCode,
   confirmNewPassword,
   refreshAccessToken,
-} from "../api/auth";
-import useUserStore from "../store/userStore"; 
+} from '../api/auth';
+import useUserStore from '../store/userStore';
 
 // 상수화된 스토리지 키
 const STORAGE_KEYS = {
-  ACCESS: "access_token",
-  REFRESH: "refresh_token",
-  EMAIL: "email",
-  NAME: "name",
-  ID: "id",
+  ACCESS: 'access_token',
+  REFRESH: 'refresh_token',
+  EMAIL: 'email',
+  NAME: 'name',
+  ID: 'id',
 };
 
-const API_URL = "http://scoopadive.com/auths";
+const API_URL = 'http://scoopadive.com/api/auths';
 
 const authService = {
   googleLogin: () => {
@@ -26,34 +26,33 @@ const authService = {
   },
 
   signin: async (email, password) => {
-  try {
-    console.log("📥 로그인 요청 시작");
-    const data = await signInAPI(email, password);
-    console.log("🔐 로그인 응답 data:", data);
+    try {
+      console.log('📥 로그인 요청 시작');
+      const data = await signInAPI(email, password);
+      console.log('🔐 로그인 응답 data:', data);
 
-    const userName = data.name || data.username || "사용자";
+      const userName = data.name || data.username || '사용자';
 
-    // 로컬스토리지 저장
-    localStorage.setItem(STORAGE_KEYS.ACCESS, data.access);
-    localStorage.setItem(STORAGE_KEYS.REFRESH, data.refresh);
-    localStorage.setItem(STORAGE_KEYS.EMAIL, data.email);
-    localStorage.setItem(STORAGE_KEYS.NAME, userName);
-    localStorage.setItem(STORAGE_KEYS.ID, data.id);
+      // 로컬스토리지 저장
+      localStorage.setItem(STORAGE_KEYS.ACCESS, data.access);
+      localStorage.setItem(STORAGE_KEYS.REFRESH, data.refresh);
+      localStorage.setItem(STORAGE_KEYS.EMAIL, data.email);
+      localStorage.setItem(STORAGE_KEYS.NAME, userName);
+      localStorage.setItem(STORAGE_KEYS.ID, data.id);
 
-    // Zustand에 넘길 사용자 객체 반환
-    return {
-      access: data.access,
-      refresh: data.refresh,
-      email: data.email,
-      name: userName,
-      id: data.id,
-    };
-  } catch (error) {
-    console.error("❌ 로그인 실패:", error);
-    throw error;
-  }
-},
-
+      // Zustand에 넘길 사용자 객체 반환
+      return {
+        access: data.access,
+        refresh: data.refresh,
+        email: data.email,
+        name: userName,
+        id: data.id,
+      };
+    } catch (error) {
+      console.error('❌ 로그인 실패:', error);
+      throw error;
+    }
+  },
 
   signup: async ({ email, username, password, country }) => {
     return await signUp({ email, username, password, country });
@@ -85,7 +84,7 @@ const authService = {
       localStorage.setItem(STORAGE_KEYS.ACCESS, data.access);
       return data.access;
     } catch (err) {
-      console.error("❌ 토큰 갱신 실패:", err);
+      console.error('❌ 토큰 갱신 실패:', err);
       authService.logout();
       return null;
     }
@@ -105,7 +104,7 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // 응답 인터셉터
@@ -114,10 +113,10 @@ api.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401) {
       authService.logout();
-      window.location.href = "/signin";
+      window.location.href = '/api/signin';
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default authService;

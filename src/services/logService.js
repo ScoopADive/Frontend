@@ -1,12 +1,6 @@
-import {
-  getAllLogs,
-  getMyLogs,
-  getLogById,
-  createLog,
-  deleteLog,
-} from "../api/logbook";
+import { getAllLogs, getMyLogs, getLogById, createLog, deleteLog } from '../api/logbook';
 
-import api from "../api/axios";
+import api from '../api/axios';
 
 const logService = {
   getAllLogs,
@@ -17,14 +11,14 @@ const logService = {
 
   updateLog: async (id, formData) => {
     try {
-      const res = await api.patch(`/logbooks/${id}/`, formData, {
+      const res = await api.patch(`/api/logbooks/${id}/`, formData, {
         headers: {
-          "Content-Type": "multipart/form-data",
+          'Content-Type': 'multipart/form-data',
         },
       });
       return res.data;
     } catch (err) {
-      console.error("❌ 로그 수정 실패:", err.response?.data || err);
+      console.error('❌ 로그 수정 실패:', err.response?.data || err);
       throw err;
     }
   },

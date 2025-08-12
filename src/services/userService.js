@@ -1,8 +1,4 @@
-import {
-  updateUserProfile,
-  getFriendDetail,
-  getAllUsers,
-} from "../api/user";
+import { updateUserProfile, getFriendDetail, getAllUsers } from '../api/user';
 
 const userService = {
   updateProfile: async (id, profileData) => {
