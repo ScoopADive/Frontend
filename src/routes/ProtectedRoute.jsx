@@ -1,7 +1,10 @@
 import PropTypes from "prop-types";
+import { Navigate, useLocation } from "react-router-dom";
 
-// 로그인 여부 상관없이 무조건 children 반환 (임시 우회)
 const ProtectedRoute = ({ children }) => {
+  const token = localStorage.getItem("access_token");
+  const location = useLocation();
+  if (!token) return <Navigate to="/signin" replace state={{ from: location }} />;
   return children;
 };
 

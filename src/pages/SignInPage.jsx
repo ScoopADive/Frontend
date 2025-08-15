@@ -1,22 +1,17 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-
 import Layout from "../components/layout/Layout";
 import Input from "../components/common/Input";
 import Button from "../components/common/Button";
 import authService from "../services/authService";
 import useUserStore from "../store/userStore";
 import { handleFormChange, getErrorMessage } from "../utils/formUtil";
-
-import {
-  AUTH_ROUTES,
-  AUTH_LABELS,
-  AUTH_MESSAGES,
-} from "../constants";
+import { AUTH_ROUTES, AUTH_LABELS } from "../constants";
 
 function SignInPage() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const setUser = useUserStore((state) => state.setUser);
@@ -25,34 +20,36 @@ function SignInPage() {
     if (loading) return;
     setLoading(true);
     setError("");
-
     try {
       const data = await authService.signin(form.email, form.password);
-      console.log("로그인 결과:", data);
-     
-      // localStorage에 저장 (authService에서 이미 하고 있지만 안전하게 보강)
       localStorage.setItem("email", data.email);
       localStorage.setItem("name", data.name);
       localStorage.setItem("id", data.id);
-
-      // Zustand 전역 상태 업데이트 (id까지 포함)
-      setUser({
-        id: data.id,
-        email: data.email,
-        name: data.name,
-      });
-
+      setUser({ id: data.id, email: data.email, name: data.name });
       navigate(AUTH_ROUTES.HOME);
     } catch (err) {
-      console.error("❌ 로그인 실패:", err);
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleLogin = () => {
-    authService.googleLogin();
+  const handleGoogleLogin = async () => {
+    if (googleLoading) return;
+    setGoogleLoading(true);
+    setError("");
+    try {
+      const data = await authService.loginWithGoogle();
+      localStorage.setItem("email", data.email || "");
+      localStorage.setItem("name", data.name || "");
+      localStorage.setItem("id", data.id || "");
+      setUser({ id: data.id || "", email: data.email || "", name: data.name || "" });
+      navigate(AUTH_ROUTES.HOME);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setGoogleLoading(false);
+    }
   };
 
   return (
@@ -79,17 +76,17 @@ function SignInPage() {
         <Button
           text={loading ? "Signing In..." : AUTH_LABELS.SIGN_IN}
           onClick={handleSubmit}
+          disabled={loading || googleLoading}
         />
 
-        {error && (
-          <p className="text-sm text-red-500 text-center">{error}</p>
-        )}
+        {error && <p className="text-sm text-red-500 text-center">{error}</p>}
 
         <button
           onClick={handleGoogleLogin}
-          className="w-full py-2 px-4 border rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition"
+          className="w-full py-2 px-4 border rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition disabled:opacity-60"
+          disabled={googleLoading || loading}
         >
-          {AUTH_LABELS.CONTINUE_WITH_GOOGLE}
+          {googleLoading ? "Signing in with Google..." : AUTH_LABELS.CONTINUE_WITH_GOOGLE}
         </button>
 
         <div className="text-sm text-center text-gray-500">
