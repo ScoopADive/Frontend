@@ -12,10 +12,7 @@ import MarineLifeStatsBox from "../components/sections/MarineLifeStatsBox";
 import useUserStore from "../store/userStore";
 import PropTypes from "prop-types";
 import logService from "../services/logService";
-
-// 추가: 실제 버킷 API 사용
 import bucketService from "../services/bucketService";
-// 선택: 프로필 저장을 서버로 보내고 싶으면 userService를 사용
 import userService from "../services/userService";
 
 function MyPage({ isOwnPage = true }) {
@@ -30,9 +27,91 @@ function MyPage({ isOwnPage = true }) {
   const [bucketList, setBucketList] = useState([]);
   const [newBucketTitle, setNewBucketTitle] = useState("");
   const [logs, setLogs] = useState([]);
+  const [spots, setSpots] = useState([]);
+  const [mapCenter, setMapCenter] = useState([20, 100]);
   const fileInputRef = useRef(null);
 
   const friends = ["Suzy", "Mina", "Jisoo", "Luca"];
+
+  const getField = (obj, keys) => {
+    for (const k of keys) {
+      if (obj && obj[k] !== undefined && obj[k] !== null && obj[k] !== "") return obj[k];
+    }
+    return undefined;
+  };
+
+  const loadGeocodeCache = () => {
+    try {
+      const raw = localStorage.getItem("geocode_cache_v1");
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const saveGeocodeCache = (cache) => {
+    try {
+      localStorage.setItem("geocode_cache_v1", JSON.stringify(cache));
+    } catch {}
+  };
+
+  const geocodeSite = async (site) => {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(site)}&limit=1`;
+    const res = await fetch(url, { headers: { "Accept-Language": "en" } });
+    if (!res.ok) throw new Error("geocode failed");
+    const data = await res.json();
+    if (!Array.isArray(data) || data.length === 0) return null;
+    const { lat, lon } = data[0];
+    return { lat: parseFloat(lat), lng: parseFloat(lon) };
+  };
+
+  const buildSpotsFromLogs = async (logsData) => {
+    const direct = [];
+    const needGeocode = [];
+    for (const log of logsData) {
+      const lat = parseFloat(getField(log, ["lat", "latitude", "site_lat", "dive_site_lat"]));
+      const lng = parseFloat(getField(log, ["lng", "lon", "longitude", "site_lng", "dive_site_lng"]));
+      const site = getField(log, ["dive_site", "site", "spot", "location", "dive_title"]) || "Unknown";
+      if (!isNaN(lat) && !isNaN(lng)) {
+        direct.push({ site: String(site), lat, lng });
+      } else {
+        const nameOnly = String(site).trim();
+        if (nameOnly) needGeocode.push(nameOnly);
+      }
+    }
+
+    const uniqueNames = Array.from(new Set(needGeocode));
+    const cache = loadGeocodeCache();
+    const results = [];
+    for (const name of uniqueNames) {
+      if (cache[name]) {
+        results.push({ site: name, lat: cache[name].lat, lng: cache[name].lng });
+        continue;
+      }
+      try {
+        const pos = await geocodeSite(name);
+        if (pos) {
+          cache[name] = pos;
+          results.push({ site: name, lat: pos.lat, lng: pos.lng });
+        }
+      } catch {}
+    }
+    saveGeocodeCache(cache);
+
+    const merged = [...direct, ...results];
+    const dedupKey = (s) => `${s.site}-${s.lat.toFixed(4)}-${s.lng.toFixed(4)}`;
+    const final = Array.from(new Map(merged.map((s) => [dedupKey(s), s])).values());
+
+    if (final.length > 0) {
+      const avgLat = final.reduce((a, b) => a + b.lat, 0) / final.length;
+      const avgLng = final.reduce((a, b) => a + b.lng, 0) / final.length;
+      setMapCenter([avgLat, avgLng]);
+    } else {
+      setMapCenter([20, 100]);
+    }
+
+    setSpots(final);
+  };
 
   useEffect(() => {
     const dummyUser = {
@@ -52,14 +131,14 @@ function MyPage({ isOwnPage = true }) {
 
     const fetchLogs = async () => {
       try {
-        const logs = await logService.getMyLogs();
-        if (!Array.isArray(logs)) {
-          console.warn("응답이 배열이 아님:", logs);
-          return;
-        }
-        setLogs(logs);
-      } catch (err) {
-        console.error("❌ 내 로그 불러오기 실패:", err);
+        const res = await logService.getMyLogs();
+        const arr = Array.isArray(res) ? res : [];
+        setLogs(arr);
+        await buildSpotsFromLogs(arr);
+      } catch {
+        setLogs([]);
+        setSpots([]);
+        setMapCenter([20, 100]);
       }
     };
 
@@ -67,8 +146,7 @@ function MyPage({ isOwnPage = true }) {
       try {
         const list = await bucketService.getList(1);
         setBucketList(Array.isArray(list) ? list : []);
-      } catch (err) {
-        console.error("❌ 버킷리스트 불러오기 실패:", err);
+      } catch {
         setBucketList([]);
       }
     };
@@ -95,12 +173,7 @@ function MyPage({ isOwnPage = true }) {
         };
         try {
           await userService.updateProfile(user.id, payload);
-        } catch (e) {
-          console.warn(
-            "서버 프로필 저장 실패(로컬만 갱신):",
-            e?.response?.data || e.message
-          );
-        }
+        } catch {}
       }
 
       updateUser({
@@ -117,8 +190,7 @@ function MyPage({ isOwnPage = true }) {
 
       setIsEditing(false);
       alert("Profile saved successfully.");
-    } catch (err) {
-      console.error("Save failed", err);
+    } catch {
       alert("Failed to save profile.");
     }
   };
@@ -135,8 +207,7 @@ function MyPage({ isOwnPage = true }) {
       setBucketList((prev) => [created, ...prev]);
       setNewBucketTitle("");
       setShowBucketInput(false);
-    } catch (err) {
-      console.error("❌ 버킷리스트 추가 실패:", err?.response?.data || err.message);
+    } catch {
       alert("Failed to add bucket item.");
     }
   };
@@ -172,9 +243,7 @@ function MyPage({ isOwnPage = true }) {
   return (
     <Layout>
       <div className="flex flex-col lg:flex-row gap-8 justify-center items-start">
-        {/* 왼쪽 사이드 */}
         <div className="w-full lg:w-[320px] space-y-6">
-          {/* 프로필 카드 */}
           <div className="bg-white p-6 rounded-xl shadow-md space-y-4 text-center">
             <img
               src={user.profilePhoto}
@@ -266,7 +335,6 @@ function MyPage({ isOwnPage = true }) {
             )}
           </div>
 
-          {/* 버킷리스트 */}
           <div className="bg-white p-4 rounded-xl shadow-md">
             <h3 className="text-lg font-semibold mb-2 text-gray-800">
               📌 Bucket List
@@ -318,7 +386,6 @@ function MyPage({ isOwnPage = true }) {
             )}
           </div>
 
-          {/* 친구 */}
           {isOwnPage && (
             <div className="bg-white p-4 rounded-xl shadow-md space-y-2">
               <h3 className="text-lg font-semibold mb-2 text-gray-800">
@@ -346,7 +413,6 @@ function MyPage({ isOwnPage = true }) {
           )}
         </div>
 
-        {/* 오른쪽 메인 */}
         <div className="flex-1 space-y-6">
           <SkillCard
             skill={{
@@ -384,7 +450,7 @@ function MyPage({ isOwnPage = true }) {
           </div>
 
           <ChartBox logs={logs} />
-          <DiveMapBox />
+          <DiveMapBox spots={spots} center={mapCenter} zoom={spots.length ? 3 : 2} height="h-72" />
           <TimelineBox />
           <DiveHeatmapBox />
           <ExperienceBox />
