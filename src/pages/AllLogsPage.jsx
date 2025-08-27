@@ -11,7 +11,8 @@ function AllLogsPage() {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const data = await logService.getAllLogs();
+        // ✅ 여기서 getAllLogs → getMyLogs 로 교체
+        const data = await logService.getMyLogs();
         let rawLogs = [];
 
         if (Array.isArray(data)) {
@@ -23,7 +24,7 @@ function AllLogsPage() {
         const sorted = sortLogs(rawLogs, sortOrder);
         setLogs(sorted);
       } catch (error) {
-        console.error("❌ 전체 로그 불러오기 실패:", error);
+        console.error("❌ 내 로그 불러오기 실패:", error);
         setLogs([]);
       } finally {
         setLoading(false);
@@ -31,7 +32,7 @@ function AllLogsPage() {
     };
 
     fetchLogs();
-  }, []);
+  }, [sortOrder]);
 
   const sortLogs = (logs, order) => {
     return [...logs].sort((a, b) => {
@@ -51,7 +52,7 @@ function AllLogsPage() {
     <Layout>
       <div className="py-8 px-4 max-w-7xl mx-auto">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-          <h1 className="text-3xl font-bold text-gray-800">All Dive Logs</h1>
+          <h1 className="text-3xl font-bold text-gray-800">My Dive Logs</h1>
           <div>
             <label className="text-sm font-medium text-gray-600 mr-2">
               Sort by:
