@@ -1,25 +1,56 @@
-import axios from 'axios';
-import authService from '../services/authService';
+// src/api/axios.js
+// 설명: 공통 axios 인스턴스. 401(만료 포함) 발생 시 즉시 강제 로그아웃으로 통일.
+// 주의: FormData 전송 시 Content-Type을 수동 지정하지 않는다.
 
-// 기본 Content-Type을 강제로 'application/json'으로 고정하면
-// FormData 전송이 깨지므로 제거한다.
+import axios from 'axios';
+
+// 스토리지 키는 전역에서 통일
+const STORAGE_KEYS = {
+  ACCESS: 'access_token',
+  REFRESH: 'refresh_token',
+  EMAIL: 'email',
+  NAME: 'name',
+  ID: 'id',
+};
+
+// 라우터 훅을 쓸 수 없으므로 하드 리다이렉트 사용
+function redirectToSignIn() {
+  try {
+    if (window.location.pathname !== '/signin') {
+      window.location.assign('/signin');
+    }
+  } catch (_) {
+    // noop
+  }
+}
+
+// 전역 강제 로그아웃: 스토리지 정리 후 /signin 이동
+export function forceLogout() {
+  try {
+    Object.values(STORAGE_KEYS).forEach((k) => localStorage.removeItem(k));
+  } catch (_) {
+    // noop
+  }
+  redirectToSignIn();
+}
+
 const api = axios.create({
   baseURL: 'https://scoopadive.com/api/',
   headers: {
     Accept: 'application/json',
   },
+  withCredentials: false,
 });
 
-// 요청 시 access token 자동 첨부 + FormData면 Content-Type 제거
+// 요청 인터셉터: 액세스 토큰 자동 첨부, FormData면 Content-Type 제거
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem(STORAGE_KEYS.ACCESS);
     if (token) {
       if (!config.headers) config.headers = {};
       config.headers['Authorization'] = `Bearer ${token}`;
     }
 
-    // FormData면 Content-Type 헤더를 지워서 브라우저가 boundary를 붙이게 한다.
     const isFormData =
       typeof FormData !== 'undefined' && config.data instanceof FormData;
 
@@ -28,7 +59,6 @@ api.interceptors.request.use(
         delete config.headers['Content-Type'];
       }
     } else {
-      // JSON 전송일 때만 기본 Content-Type 지정
       if (config.headers && !config.headers['Content-Type']) {
         config.headers['Content-Type'] = 'application/json';
       }
@@ -39,46 +69,26 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// 응답에서 401일 경우 → 토큰 갱신 시도 → 원래 요청 재시도
+// 응답 인터셉터: 401 즉시 로그아웃으로 통일하여 루프 차단
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    if (
-      error.response?.status === 401 &&
-      !originalRequest?._retry &&
-      !originalRequest?.url?.includes('auths/signin') &&
-      !originalRequest?.url?.includes('auths/signup')
-    ) {
-      originalRequest._retry = true;
+    // 중복 처리 방지 플래그
+    if (originalRequest && originalRequest.__handled401) {
+      return Promise.reject(error);
+    }
 
-      try {
-        const newAccessToken = await authService.refreshToken();
-        if (newAccessToken) {
-          localStorage.setItem('access_token', newAccessToken);
-          if (!originalRequest.headers) originalRequest.headers = {};
-          originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+    const status = error?.response?.status;
+    if (status === 401) {
+      if (originalRequest) originalRequest.__handled401 = true;
 
-          // 재시도 요청이 FormData라면 Content-Type이 없도록 보장
-          const isFormData =
-            typeof FormData !== 'undefined' &&
-            originalRequest.data instanceof FormData;
-          if (isFormData && originalRequest.headers['Content-Type']) {
-            delete originalRequest.headers['Content-Type'];
-          }
+      // 갱신 시도 없이 즉시 강제 로그아웃
+      forceLogout();
 
-          return api(originalRequest);
-        }
-      } catch (refreshError) {
-        console.error('❌ 토큰 갱신 실패:', refreshError);
-      }
-
-      try {
-        await authService.logout();
-      } finally {
-        window.location.href = '/';
-      }
+      // 상위 호출부로 에러 전파
+      return Promise.reject(error);
     }
 
     return Promise.reject(error);
