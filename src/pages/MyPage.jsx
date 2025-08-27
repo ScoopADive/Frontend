@@ -40,8 +40,12 @@ function MyPage({ isOwnPage = true }) {
       username: storeUser?.name || storeUser?.username || "Guest",
       email: storeUser?.email || "guest@example.com",
       license: storeUser?.country || "Open Water Diver",
-      profilePhoto: storeUser?.profilePhoto || storeUser?.profile_image || "https://via.placeholder.com/100",
+      profilePhoto:
+        storeUser?.profilePhoto ||
+        storeUser?.profile_image ||
+        "https://via.placeholder.com/100",
       intro: storeUser?.intro || "Welcome to your scuba profile!",
+      specialties: storeUser?.specialties || [],
     };
 
     setUser(isOwnPage ? dummyUser : "not-found");
@@ -61,7 +65,7 @@ function MyPage({ isOwnPage = true }) {
 
     const fetchBuckets = async () => {
       try {
-        const list = await bucketService.getList(1); // 서버에서 현재 목록 가져오기
+        const list = await bucketService.getList(1);
         setBucketList(Array.isArray(list) ? list : []);
       } catch (err) {
         console.error("❌ 버킷리스트 불러오기 실패:", err);
@@ -80,38 +84,25 @@ function MyPage({ isOwnPage = true }) {
   const toggleEdit = () => setIsEditing((prev) => !prev);
   const toggleBucketInput = () => setShowBucketInput((prev) => !prev);
 
-  // 프로필 저장: 파일이 있으면 FormData, 없으면 JSON 사용
   const handleSaveProfile = async () => {
     try {
-      // 서버에도 반영하려면 userService 사용
       if (user?.id) {
-        let payload;
-        const hasFile = false; // 이 페이지에서는 미리보기만 하므로 파일 필드는 별도 관리시 true로 바꿔 사용
-        if (hasFile) {
-          const fd = new FormData();
-          fd.append("username", user.username || "");
-          fd.append("email", user.email || "");
-          fd.append("country", user.license || "");
-          fd.append("intro", user.intro || "");
-          // fd.append("profile_image", fileObj)  // 파일을 관리한다면 추가
-          payload = fd;
-        } else {
-          payload = {
-            username: user.username || "",
-            email: user.email || "",
-            country: user.license || "",
-            intro: user.intro || "",
-          };
-        }
-        // 실패해도 로컬 업데이트는 유지
+        let payload = {
+          username: user.username || "",
+          email: user.email || "",
+          country: user.license || "",
+          intro: user.intro || "",
+        };
         try {
           await userService.updateProfile(user.id, payload);
         } catch (e) {
-          console.warn("서버 프로필 저장 실패(로컬만 갱신):", e?.response?.data || e.message);
+          console.warn(
+            "서버 프로필 저장 실패(로컬만 갱신):",
+            e?.response?.data || e.message
+          );
         }
       }
 
-      // 로컬 스토어 갱신
       updateUser({
         id: storeUser?.id,
         email: user.email,
@@ -121,6 +112,7 @@ function MyPage({ isOwnPage = true }) {
         profile_image: user.profilePhoto,
         intro: user.intro,
         username: user.username,
+        specialties: user.specialties,
       });
 
       setIsEditing(false);
@@ -135,13 +127,12 @@ function MyPage({ isOwnPage = true }) {
     setIsEditing(false);
   };
 
-  // 서버로 생성 요청 보내는 버킷 추가
   const handleAddBucket = async () => {
     const title = newBucketTitle.trim();
     if (!title) return alert("Please enter a title.");
     try {
       const created = await bucketService.create(title, storeUser?.id ?? null);
-      setBucketList((prev) => [created, ...prev]); // 서버가 돌려준 아이템을 화면에 반영
+      setBucketList((prev) => [created, ...prev]);
       setNewBucketTitle("");
       setShowBucketInput(false);
     } catch (err) {
@@ -163,7 +154,9 @@ function MyPage({ isOwnPage = true }) {
   if (user === "not-found") {
     return (
       <Layout>
-        <div className="text-center text-red-500 mt-10 text-lg">User not found.</div>
+        <div className="text-center text-red-500 mt-10 text-lg">
+          User not found.
+        </div>
       </Layout>
     );
   }
@@ -179,7 +172,9 @@ function MyPage({ isOwnPage = true }) {
   return (
     <Layout>
       <div className="flex flex-col lg:flex-row gap-8 justify-center items-start">
+        {/* 왼쪽 사이드 */}
         <div className="w-full lg:w-[320px] space-y-6">
+          {/* 프로필 카드 */}
           <div className="bg-white p-6 rounded-xl shadow-md space-y-4 text-center">
             <img
               src={user.profilePhoto}
@@ -205,21 +200,25 @@ function MyPage({ isOwnPage = true }) {
                 </div>
                 <input
                   className="border p-2 w-full rounded"
+                  placeholder="Enter username"
                   value={user.username}
                   onChange={handleChange("username")}
                 />
                 <input
                   className="border p-2 w-full rounded"
+                  placeholder="Enter email"
                   value={user.email}
                   onChange={handleChange("email")}
                 />
                 <input
                   className="border p-2 w-full rounded"
+                  placeholder="Enter license"
                   value={user.license}
                   onChange={handleChange("license")}
                 />
                 <textarea
                   className="border p-2 w-full rounded"
+                  placeholder="Enter introduction"
                   value={user.intro}
                   onChange={handleChange("intro")}
                 />
@@ -240,7 +239,9 @@ function MyPage({ isOwnPage = true }) {
               </>
             ) : (
               <>
-                <h2 className="text-xl font-semibold text-gray-800">{user.username}</h2>
+                <h2 className="text-xl font-semibold text-gray-800">
+                  {user.username}
+                </h2>
                 <p className="text-sm text-gray-500">{user.email}</p>
                 <p className="text-sm">
                   <strong>License:</strong> {user.license}
@@ -265,8 +266,11 @@ function MyPage({ isOwnPage = true }) {
             )}
           </div>
 
+          {/* 버킷리스트 */}
           <div className="bg-white p-4 rounded-xl shadow-md">
-            <h3 className="text-lg font-semibold mb-2 text-gray-800">📌 Bucket List</h3>
+            <h3 className="text-lg font-semibold mb-2 text-gray-800">
+              📌 Bucket List
+            </h3>
             {bucketList.length === 0 ? (
               <p className="text-gray-500">No items added yet.</p>
             ) : (
@@ -314,13 +318,19 @@ function MyPage({ isOwnPage = true }) {
             )}
           </div>
 
+          {/* 친구 */}
           {isOwnPage && (
             <div className="bg-white p-4 rounded-xl shadow-md space-y-2">
-              <h3 className="text-lg font-semibold mb-2 text-gray-800">👥 Friends</h3>
+              <h3 className="text-lg font-semibold mb-2 text-gray-800">
+                👥 Friends
+              </h3>
               <ul className="list-disc list-inside text-gray-700">
                 {friends.map((friend, idx) => (
                   <li key={idx}>
-                    <Link to={`/user/${friend}`} className="text-blue-600 hover:underline">
+                    <Link
+                      to={`/user/${friend}`}
+                      className="text-blue-600 hover:underline"
+                    >
                       {friend}
                     </Link>
                   </li>
@@ -336,11 +346,13 @@ function MyPage({ isOwnPage = true }) {
           )}
         </div>
 
+        {/* 오른쪽 메인 */}
         <div className="flex-1 space-y-6">
           <SkillCard
             skill={{
-              title: "My Skills",
+              title: "🏅 My Skills",
               level: user.license,
+              specialties: user.specialties,
               logs: logs.length,
               remainingToMaster: Math.max(0, 50 - logs.length),
             }}
@@ -397,4 +409,3 @@ MyPage.propTypes = {
 };
 
 export default MyPage;
-

@@ -1,104 +1,131 @@
+// src/components/cards/SkillCard.jsx
 import PropTypes from "prop-types";
-import { useState } from "react";
+import { memo, useMemo } from "react";
+import { getLevelColor } from "../../constants/divingCerts";
 
-function SkillCard({ skill: initialSkill }) {
-  const [skill, setSkill] = useState(initialSkill);
-  const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({
-    level: "",
-    specialties: "",
-    logs: 0,
-  });
+const REQUIRED_DIVES = 50;
 
-  const handleAddClick = () => {
-    setShowForm(!showForm);
-  };
+function SkillCard({ skill }) {
+  // 모든 표시는 부모에서 내려준 데이터에 의존한다
+  const {
+    title = "My Skills",
+    level = "Open Water Diver",
+    specialties = [],
+    logs = 0,
+  } = skill || {};
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  const specialtyCount = Array.isArray(specialties) ? specialties.length : 0;
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const hasRescue =
+    (level || "").toLowerCase().includes("rescue") ||
+    specialties.some((s) => (s || "").toLowerCase().includes("rescue"));
 
-    const logsNum = parseInt(formData.logs, 10) || 0;
-    const newSkill = {
-      title: "Open Water Diver",
-      level: formData.level || "Open Water Diver",
-      logs: logsNum,
-      remainingToMaster: Math.max(50 - logsNum, 0),
-    };
+  const progressPct = Math.min((logs / REQUIRED_DIVES) * 100, 100);
 
-    setSkill(newSkill);
-    setShowForm(false);
-  };
+  const nextSteps = useMemo(() => {
+    const steps = [];
+    if (!hasRescue) steps.push("Get Rescue Diver certification");
+    if (specialtyCount < 5) steps.push(`${5 - specialtyCount} more specialties`);
+    if (logs < REQUIRED_DIVES) steps.push(`${REQUIRED_DIVES - logs} more dives`);
+    return steps;
+  }, [hasRescue, specialtyCount, logs]);
 
-  if (!skill) return null;
+  const allDone = nextSteps.length === 0;
 
   return (
     <div className="bg-white p-6 rounded-xl shadow-md mb-6">
-      {/* 상단 타이틀 + 버튼을 한 줄로 */}
-      <div className="flex items-center justify-between mb-2">
-        <h2 className="text-lg font-semibold text-gray-800">🏅 My Skills</h2>
-        <button
-          onClick={handleAddClick}
-          className="bg-gray-200 hover:bg-gray-300 text-sm text-gray-800 py-1 px-3 rounded"
-        >
-          {showForm ? "Cancel" : "Add"}
-        </button>
+      {/* 상단 타이틀 */}
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
+        <span className="text-xs px-2 py-1 rounded-full border text-gray-700 bg-gray-50">
+          Derived from your logs
+        </span>
       </div>
 
-      <p className="text-gray-700 font-medium mb-1">
-        {skill.level} ({skill.logs} dives)
+      {/* 현재 레벨 옆에만 컬러 배지 표시 */}
+      <p className="text-gray-700 font-medium mb-1 flex items-center gap-2">
+        <span className={`inline-block w-3 h-3 rounded-full ${getLevelColor(level)}`} />
+        {level} ({logs} dives)
       </p>
 
-      <p className="text-sm text-red-500 mb-4">
-        {skill.remainingToMaster} more dives to become Master Diver
+      {/* 진행 바 */}
+      <div className="w-full bg-gray-200 rounded-full h-2">
+        <div
+          className="h-2 rounded-full bg-blue-500"
+          style={{ width: `${progressPct}%` }}
+        />
+      </div>
+      <p className="text-xs text-gray-600 mt-1">
+        {Math.max(REQUIRED_DIVES - logs, 0)} more dives to reach 50
       </p>
 
-      {showForm && (
-        <form onSubmit={handleSubmit} className="mb-4 space-y-2">
-          <input
-            type="text"
-            name="level"
-            placeholder="Level (e.g., Open Water Diver)"
-            value={formData.level}
-            onChange={handleChange}
-            className="w-full border px-3 py-1 rounded text-sm"
-            required
-          />
-          <input
-            type="text"
-            name="specialties"
-            placeholder="Specialties (comma separated)"
-            value={formData.specialties}
-            onChange={handleChange}
-            className="w-full border px-3 py-1 rounded text-sm"
-          />
-          <input
-            type="number"
-            name="logs"
-            placeholder="Total Dives"
-            value={formData.logs}
-            onChange={handleChange}
-            className="w-full border px-3 py-1 rounded text-sm"
-            required
-          />
-          <button
-            type="submit"
-            className="bg-blue-500 text-white text-sm px-3 py-1 rounded hover:bg-blue-600"
-          >
-            Save
-          </button>
-        </form>
+      {/* 스페셜티 태그 */}
+      {Array.isArray(specialties) && specialties.length > 0 && (
+        <div className="mt-4">
+          <p className="text-sm font-medium text-gray-800">Specialties</p>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {specialties.map((s, idx) => (
+              <span
+                key={`${s}-${idx}`}
+                className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs"
+              >
+                {s}
+              </span>
+            ))}
+          </div>
+        </div>
       )}
 
-      <ul className="text-sm text-gray-700 space-y-1">
-        <li>• PADI {skill.level} 자격 보유</li>
-        <li>• 여러 Specialty 코스 수료</li>
-        <li>• 총 {skill.logs}회 이상 다이빙 로그 기록</li>
-      </ul>
+      {/* 체크리스트 카드. 원형 아이콘 제거하고 상태만 텍스트로 표시 */}
+      <div className="mt-4">
+        <p className="text-sm font-medium text-gray-800">Master Scuba Diver checklist</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2 text-sm">
+          <div
+            className={`rounded-lg border p-3 ${
+              hasRescue ? "border-green-400 bg-green-50" : "border-gray-200 bg-white"
+            }`}
+          >
+            <p className="font-medium">Rescue Diver</p>
+            <p className="text-gray-600 text-xs">{hasRescue ? "Completed" : "Not yet"}</p>
+          </div>
+
+          <div
+            className={`rounded-lg border p-3 ${
+              specialtyCount >= 5 ? "border-green-400 bg-green-50" : "border-gray-200 bg-white"
+            }`}
+          >
+            <p className="font-medium">Specialties</p>
+            <p className="text-gray-600 text-xs">{specialtyCount} / 5</p>
+          </div>
+
+          <div
+            className={`rounded-lg border p-3 ${
+              logs >= REQUIRED_DIVES ? "border-green-400 bg-green-50" : "border-gray-200 bg-white"
+            }`}
+          >
+            <p className="font-medium">Logged dives</p>
+            <p className="text-gray-600 text-xs">
+              {logs} / {REQUIRED_DIVES}
+            </p>
+          </div>
+        </div>
+
+        {/* 다음 단계 안내 */}
+        <div className="mt-3">
+          {allDone ? (
+            <p className="text-sm text-green-700">All Master Scuba Diver requirements met.</p>
+          ) : (
+            <>
+              <p className="text-sm text-gray-800 font-medium">Next steps</p>
+              <ul className="list-disc list-inside text-sm text-gray-700 mt-1">
+                {nextSteps.map((n, i) => (
+                  <li key={i}>{n}</li>
+                ))}
+              </ul>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -107,9 +134,9 @@ SkillCard.propTypes = {
   skill: PropTypes.shape({
     title: PropTypes.string,
     level: PropTypes.string,
+    specialties: PropTypes.arrayOf(PropTypes.string),
     logs: PropTypes.number,
-    remainingToMaster: PropTypes.number,
   }),
 };
 
-export default SkillCard;
+export default memo(SkillCard);
