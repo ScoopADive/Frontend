@@ -1,3 +1,4 @@
+// src/services/bucketService.js
 import api from '../api/axios';
 
 // 서버가 페이지네이션 객체를 주므로 results를 꺼내서 배열로 반환
@@ -18,14 +19,13 @@ export const fetchBucketList = async (page = 1) => {
   }
 };
 
-// 항목 추가 (POST /mypage/bucketlists/ , form-data: title[, user])
-export const addBucketItem = async (title, userId = null) => {
+// 항목 추가 (POST /mypage/bucketlists/ , form-data: title)
+export const addBucketItem = async (title) => {
   try {
     const fd = new FormData();
     fd.append('title', title);
-    if (userId) fd.append('user', String(userId));
     const res = await api.post('mypage/bucketlists/', fd, { headers: {} });
-    return res.data; // { id, title, created_at, user, ... }
+    return res.data; // { id, title, created_at, ... }
   } catch (err) {
     console.error('❌ 버킷리스트 추가 실패:', err?.response?.data || err.message);
     throw err;
