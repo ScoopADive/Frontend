@@ -37,11 +37,6 @@ function SignInPage() {
 
   // 구글 로그인
   const handleGoogleLogin = () => {
-    if (googleLoading) return;
-    setGoogleLoading(true);
-    setError('');
-
-    // 브라우저 직접 이동 → CORS 문제 없음
     authService.loginWithGoogle();
   };
 
