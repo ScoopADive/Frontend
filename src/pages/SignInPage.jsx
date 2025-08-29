@@ -36,8 +36,14 @@ function SignInPage() {
   };
 
   // 구글 로그인
+  // SignInPage.js
   const handleGoogleLogin = () => {
-    authService.loginWithGoogle();
+    if (googleLoading) return;
+    setGoogleLoading(true);
+    setError('');
+
+    // 브라우저 직접 이동 (axios로 호출 NO)
+    window.location.href = 'https://scoopadive.com/api/accounts/google/login/';
   };
 
   return (
