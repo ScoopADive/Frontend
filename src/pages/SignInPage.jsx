@@ -1,30 +1,31 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import Layout from "../components/layout/Layout";
-import Input from "../components/common/Input";
-import Button from "../components/common/Button";
-import authService from "../services/authService";
-import useUserStore from "../store/userStore";
-import { handleFormChange, getErrorMessage } from "../utils/formUtil";
-import { AUTH_ROUTES, AUTH_LABELS } from "../constants";
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import Layout from '../components/layout/Layout';
+import Input from '../components/common/Input';
+import Button from '../components/common/Button';
+import authService from '../services/authService';
+import useUserStore from '../store/userStore';
+import { handleFormChange, getErrorMessage } from '../utils/formUtil';
+import { AUTH_ROUTES, AUTH_LABELS } from '../constants';
 
 function SignInPage() {
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const navigate = useNavigate();
   const setUser = useUserStore((state) => state.setUser);
 
+  // 일반 로그인
   const handleSubmit = async () => {
     if (loading) return;
     setLoading(true);
-    setError("");
+    setError('');
     try {
       const data = await authService.signin(form.email, form.password);
-      localStorage.setItem("email", data.email);
-      localStorage.setItem("name", data.name);
-      localStorage.setItem("id", data.id);
+      localStorage.setItem('email', data.email);
+      localStorage.setItem('name', data.name);
+      localStorage.setItem('id', data.id);
       setUser({ id: data.id, email: data.email, name: data.name });
       navigate(AUTH_ROUTES.HOME);
     } catch (err) {
@@ -34,30 +35,20 @@ function SignInPage() {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  // 구글 로그인
+  const handleGoogleLogin = () => {
     if (googleLoading) return;
     setGoogleLoading(true);
-    setError("");
-    try {
-      const data = await authService.loginWithGoogle();
-      localStorage.setItem("email", data.email || "");
-      localStorage.setItem("name", data.name || "");
-      localStorage.setItem("id", data.id || "");
-      setUser({ id: data.id || "", email: data.email || "", name: data.name || "" });
-      navigate(AUTH_ROUTES.HOME);
-    } catch (err) {
-      setError(getErrorMessage(err));
-    } finally {
-      setGoogleLoading(false);
-    }
+    setError('');
+
+    // 브라우저 직접 이동 → CORS 문제 없음
+    authService.loginWithGoogle();
   };
 
   return (
     <Layout>
       <div className="max-w-md mx-auto mt-12 bg-white p-6 rounded-xl shadow-md space-y-4">
-        <h1 className="text-2xl font-bold text-center text-blue-600">
-          {AUTH_LABELS.SIGN_IN}
-        </h1>
+        <h1 className="text-2xl font-bold text-center text-blue-600">{AUTH_LABELS.SIGN_IN}</h1>
 
         <Input
           label={AUTH_LABELS.EMAIL}
@@ -74,7 +65,7 @@ function SignInPage() {
         />
 
         <Button
-          text={loading ? "Signing In..." : AUTH_LABELS.SIGN_IN}
+          text={loading ? 'Signing In...' : AUTH_LABELS.SIGN_IN}
           onClick={handleSubmit}
           disabled={loading || googleLoading}
         />
@@ -86,22 +77,22 @@ function SignInPage() {
           className="w-full py-2 px-4 border rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition disabled:opacity-60"
           disabled={googleLoading || loading}
         >
-          {googleLoading ? "Signing in with Google..." : AUTH_LABELS.CONTINUE_WITH_GOOGLE}
+          {googleLoading ? 'Signing in with Google...' : AUTH_LABELS.CONTINUE_WITH_GOOGLE}
         </button>
 
         <div className="text-sm text-center text-gray-500">
-          비밀번호를 잊으셨나요?{" "}
+          비밀번호를 잊으셨나요?{' '}
           <Link to="/forgot-password" className="text-blue-600 hover:underline">
             비밀번호 재설정
           </Link>
         </div>
 
         <div className="text-center text-sm text-gray-600 mt-4">
-          아직 계정이 없으신가요?{" "}
+          아직 계정이 없으신가요?{' '}
           <Link
             to="/signup"
             className="text-blue-600 hover:text-blue-700 font-semibold"
-            style={{ textDecoration: "none" }}
+            style={{ textDecoration: 'none' }}
           >
             회원가입
           </Link>
