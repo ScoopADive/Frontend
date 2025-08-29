@@ -1,10 +1,19 @@
-import PropTypes from "prop-types";
+import PropTypes from 'prop-types';
+import { useNavigate } from 'react-router-dom';
 
 function PostCard({ post, isPopular = false }) {
-  const { user, imageUrl, action, feeling, time, likes, comments, views } = post;
+  const { id, user, imageUrl, action, feeling, time, likes, comments, views } = post;
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    navigate(`/log/${id}`);
+  };
 
   return (
-    <div className="bg-white rounded-xl shadow-md overflow-hidden">
+    <div
+      className="bg-white rounded-xl shadow-md overflow-hidden cursor-pointer hover:shadow-lg transition"
+      onClick={handleClick}
+    >
       {/* 사용자 정보 */}
       <div className="p-4 border-b">
         <p className="text-gray-800 font-medium">
@@ -15,26 +24,26 @@ function PostCard({ post, isPopular = false }) {
 
       {/* 콘텐츠 영역 */}
       <div className="flex flex-col gap-4 p-4">
-        <img
-          src={imageUrl}
-          alt={`${user}'s post`}
-          className="w-full h-48 object-cover rounded-lg"
-        />
-        <div className="bg-[#eaf4fb] p-4 rounded-lg">
-          <h4 className="font-semibold text-gray-700 mb-1">Feeling</h4>
-          <p className="text-gray-600 text-sm">{feeling}</p>
-        </div>
+        {imageUrl && (
+          <img
+            src={imageUrl}
+            alt={`${user}'s post`}
+            className="w-full h-48 object-cover rounded-lg"
+          />
+        )}
+        {feeling && (
+          <div className="bg-[#eaf4fb] p-4 rounded-lg">
+            <h4 className="font-semibold text-gray-700 mb-1">Feeling</h4>
+            <p className="text-gray-600 text-sm">{feeling}</p>
+          </div>
+        )}
       </div>
 
       {/* 하단 메타정보 */}
       <div className="px-4 pb-4 text-sm text-gray-500">
-        {isPopular ? (
-          <p className="font-medium text-gray-700">
-            🔥 {likes} Likes · {views} Views · {comments} Comments
-          </p>
-        ) : (
-          <p>3 Likes · 2 Comments</p>
-        )}
+        <p className={isPopular ? 'font-medium text-gray-700' : ''}>
+          🔥 {likes ?? 0} Likes · {views ?? 0} Views · {comments ?? 0} Comments
+        </p>
       </div>
     </div>
   );
@@ -42,11 +51,12 @@ function PostCard({ post, isPopular = false }) {
 
 PostCard.propTypes = {
   post: PropTypes.shape({
+    id: PropTypes.number.isRequired,
     user: PropTypes.string.isRequired,
-    imageUrl: PropTypes.string.isRequired,
-    action: PropTypes.string.isRequired,
-    feeling: PropTypes.string.isRequired,
-    time: PropTypes.string.isRequired,
+    imageUrl: PropTypes.string,
+    action: PropTypes.string,
+    feeling: PropTypes.string,
+    time: PropTypes.string,
     likes: PropTypes.number,
     comments: PropTypes.number,
     views: PropTypes.number,
