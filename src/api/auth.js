@@ -1,48 +1,66 @@
 import api from './axios';
 
-// 로그인
-// 로그인
 export const signIn = async (email, password) => {
-  const res = await api.post('auths/signin/', { email, password });
-  return res.data;
+  try {
+    const res = await api.post('auths/signin/', { email, password });
+    return res.data;
+  } catch (err) {
+    return { error: err?.response?.data || "Sign in failed" };
+  }
 };
 
-// 회원가입
 export const signUp = async ({ email, username, password, country }) => {
-  const res = await api.post('auths/signup/', {
-    email,
-    username,
-    password,
-    country,
-  });
-  return res.data;
+  try {
+    const res = await api.post('auths/signup/', {
+      email,
+      username,
+      password,
+      country,
+    });
+    return res.data;
+  } catch (err) {
+    return { error: err?.response?.data || "Sign up failed" };
+  }
 };
 
-// access token 갱신
 export const refreshAccessToken = async (refreshToken) => {
-  const res = await api.post('auths/token/refresh/', {
-    refresh: refreshToken,
-  });
-  return res.data;
+  try {
+    const res = await api.post('auths/token/refresh/', {
+      refresh: refreshToken,
+    });
+    return res.data;
+  } catch (err) {
+    // refresh 만료 시 로그아웃 등 후속 처리 필요
+    return { error: err?.response?.data || "Token refresh failed" };
+  }
 };
 
-// 비밀번호 재설정 요청
 export const requestPasswordReset = async (email) => {
-  const res = await api.post('password-reset/request/', { email });
-  return res.data;
+  try {
+    const res = await api.post('password-reset/request/', { email });
+    return res.data;
+  } catch (err) {
+    return { error: err?.response?.data || "Password reset request failed" };
+  }
 };
 
-// 비밀번호 재설정 코드 검증
 export const verifyResetCode = async (email, code) => {
-  const res = await api.post('password-reset/verify/', { email, code });
-  return res.data;
+  try {
+    const res = await api.post('password-reset/verify/', { email, code });
+    return res.data;
+  } catch (err) {
+    return { error: err?.response?.data || "Code verification failed" };
+  }
 };
 
-// 새 비밀번호 설정
 export const confirmNewPassword = async (email, newPassword) => {
-  const res = await api.post('password-reset/confirm/', {
-    email,
-    new_password: newPassword,
-  });
-  return res.data;
+  try {
+    const res = await api.post('password-reset/confirm/', {
+      email,
+      new_password: newPassword,
+    });
+    return res.data;
+  } catch (err) {
+    return { error: err?.response?.data || "Password change failed" };
+  }
 };

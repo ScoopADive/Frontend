@@ -15,6 +15,7 @@ import SettingsPage from "../pages/SettingsPage";
 import HelpPage from "../pages/HelpPage";
 import AllLogsPage from "../pages/AllLogsPage"; 
 import { AUTH_ROUTES } from "../constants/routes";
+import TrainingPage from "../pages/TrainingPage";
 
 export default function AppRouter() {
   return (
@@ -23,6 +24,7 @@ export default function AppRouter() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/home" element={<HomePage />} />
+        <Route path="/training" element={<TrainingPage />} />
         <Route path="/signin" element={<SignInPage />} />
         <Route path="/signup" element={<SignUpPage />} />
         <Route path={AUTH_ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
