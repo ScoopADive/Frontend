@@ -9,6 +9,7 @@ function HomePage() {
   const [communityPosts, setCommunityPosts] = useState([]);
   const [topMembers, setTopMembers] = useState([]);
   const [theMostVisitedSpots, setTheMostVisitedSpots] = useState([]);
+  const [jobs, setJobs] = useState([]); // 추가
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,6 +27,7 @@ function HomePage() {
           api.get('/logbooks/'),
           api.get('/home/top_level_members'),
           api.get('/home/the_most_visited_spots'),
+          api.get('/home/jobs/'),
         ]);
 
         const logbooks =
