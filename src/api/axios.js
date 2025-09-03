@@ -1,10 +1,5 @@
-// src/api/axios.js
-// 설명: 공통 axios 인스턴스. 401(만료 포함) 발생 시 즉시 강제 로그아웃으로 통일.
-// 주의: FormData 전송 시 Content-Type을 수동 지정하지 않는다.
-
 import axios from 'axios';
 
-// 스토리지 키는 전역에서 통일
 const STORAGE_KEYS = {
   ACCESS: 'access_token',
   REFRESH: 'refresh_token',
@@ -32,6 +27,39 @@ export function forceLogout() {
     // noop
   }
   redirectToSignIn();
+}
+
+// JWT 만료 체크 함수
+function isTokenExpired(token) {
+  if (!token) return true;
+  try {
+    const [, payload] = token.split(".");
+    const decoded = JSON.parse(atob(payload));
+    return decoded.exp * 1000 < Date.now();
+  } catch {
+    return true;
+  }
+}
+
+// access token 갱신 함수
+async function tryRefreshToken() {
+  const refresh = localStorage.getItem(STORAGE_KEYS.REFRESH);
+  if (!refresh) return null;
+  try {
+    const res = await axios.post(
+      'https://scoopadive.com/api/auths/token/refresh/',
+      { refresh }
+    );
+    const { access } = res.data;
+    if (access) {
+      localStorage.setItem(STORAGE_KEYS.ACCESS, access);
+      return access;
+    }
+  } catch {
+    // refresh 만료 시
+    forceLogout();
+  }
+  return null;
 }
 
 const api = axios.create({
@@ -69,26 +97,41 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// 응답 인터셉터: 401 즉시 로그아웃으로 통일하여 루프 차단
+// 응답 인터셉터: 401 발생 시 access token 자동 갱신 후 재시도, refresh 만료 시 강제 로그아웃
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const status = error?.response?.status;
 
     // 중복 처리 방지 플래그
     if (originalRequest && originalRequest.__handled401) {
       return Promise.reject(error);
     }
 
-    const status = error?.response?.status;
+    // access token 만료로 인한 401
     if (status === 401) {
       if (originalRequest) originalRequest.__handled401 = true;
 
-      // 갱신 시도 없이 즉시 강제 로그아웃
-      forceLogout();
+      // access token 만료 체크
+      const access = localStorage.getItem(STORAGE_KEYS.ACCESS);
+      const refresh = localStorage.getItem(STORAGE_KEYS.REFRESH);
 
-      // 상위 호출부로 에러 전파
-      return Promise.reject(error);
+      if (access && refresh && isTokenExpired(access)) {
+        const newAccess = await tryRefreshToken();
+        if (newAccess) {
+          // 토큰 갱신 성공 시 재시도
+          originalRequest.headers['Authorization'] = `Bearer ${newAccess}`;
+          return api(originalRequest);
+        }
+        // refresh도 만료 시 강제 로그아웃
+        forceLogout();
+        return Promise.reject(error);
+      } else {
+        // 기타 401은 강제 로그아웃
+        forceLogout();
+        return Promise.reject(error);
+      }
     }
 
     return Promise.reject(error);

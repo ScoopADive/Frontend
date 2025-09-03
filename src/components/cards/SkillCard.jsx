@@ -1,4 +1,3 @@
-// src/components/cards/SkillCard.jsx
 import PropTypes from "prop-types";
 import { memo, useMemo } from "react";
 import { getLevelColor } from "../../constants/divingCerts";
@@ -6,7 +5,6 @@ import { getLevelColor } from "../../constants/divingCerts";
 const REQUIRED_DIVES = 50;
 
 function SkillCard({ skill }) {
-  // 모든 표시는 부모에서 내려준 데이터에 의존한다
   const {
     title = "My Skills",
     level = "Open Water Diver",
@@ -37,9 +35,12 @@ function SkillCard({ skill }) {
       {/* 상단 타이틀 */}
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
-        <span className="text-xs px-2 py-1 rounded-full border text-gray-700 bg-gray-50">
-          Derived from your logs
-        </span>
+        <button
+          className="text-xs px-2 py-1 rounded-full border text-gray-700 bg-gray-50 hover:bg-blue-100 hover:text-blue-700 transition"
+          onClick={() => window.location.href = "/training"}
+        >
+          Go to Training Page
+        </button>
       </div>
 
       {/* 현재 레벨 옆에만 컬러 배지 표시 */}
