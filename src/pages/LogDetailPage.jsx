@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import Layout from "../components/layout/Layout";
-import logService from "../services/logService";
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import Layout from '../components/layout/Layout';
+import logService from '../services/logService';
 
 function LogDetailPage() {
   const { id } = useParams();
@@ -11,65 +11,63 @@ function LogDetailPage() {
   const [form, setForm] = useState({});
   const [imagePreview, setImagePreview] = useState(null);
 
-  const BASE_URL = "http://scoopadive.com";
+  const BASE_URL = 'http://scoopadive.com';
 
   const formFields = [
-    ["dive_title", "Title"],
-    ["dive_site", "Site"],
-    ["dive_date", "Date"],
-    ["max_depth", "Max Depth (m)"],
-    ["bottom_time", "Bottom Time"],
-    ["weather", "Weather"],
-    ["type_of_dive", "Type of Dive"],
-    ["equipment", "Equipment (comma separated)"],
-    ["weight", "Weight (kg)"],
-    ["start_pressure", "Start Pressure"],
-    ["end_pressure", "End Pressure"],
-    ["dive_center", "Dive Center (ID)"],
-    ["buddy", "Buddy (User ID)"],
-    ["feeling", "Feeling"],
+    ['dive_title', 'Title'],
+    ['dive_site', 'Site'],
+    ['dive_date', 'Date'],
+    ['max_depth', 'Max Depth (m)'],
+    ['bottom_time', 'Bottom Time'],
+    ['weather', 'Weather'],
+    ['type_of_dive', 'Type of Dive'],
+    ['equipment', 'Equipment (comma separated)'],
+    ['weight', 'Weight (kg)'],
+    ['start_pressure', 'Start Pressure'],
+    ['end_pressure', 'End Pressure'],
+    ['dive_center', 'Dive Center (ID)'],
+    ['buddy', 'Buddy (User ID)'],
+    ['feeling', 'Feeling'],
   ];
 
   useEffect(() => {
     const fetchLog = async () => {
       try {
         const result = await logService.getLogById(id);
-        console.log("dive_image:", result.dive_image);
+        console.log('dive_image:', result.dive_image);
 
         setLog(result);
         setForm({
           ...result,
           equipment: Array.isArray(result.equipment)
             ? result.equipment
-            : result.equipment?.split(",") || [],
-          buddy: result.buddy?.id || "",
-          dive_center: result.dive_center?.id || "",
+            : result.equipment?.split(',') || [],
+          buddy: result.buddy?.id || '',
+          dive_center: result.dive_center?.id || '',
         });
 
         if (result.dive_image) {
-          const isFullURL = result.dive_image.startsWith("http");
-          const imageURL = isFullURL
-            ? result.dive_image
-            : `${BASE_URL}${result.dive_image}`;
+          const isFullURL = result.dive_image.startsWith('http');
+          const imageURL = isFullURL ? result.dive_image : `${BASE_URL}${result.dive_image}`;
           setImagePreview(imageURL);
         }
       } catch (err) {
-        alert("❌ 로그 정보를 불러오지 못했습니다");
+        alert('❌ 로그 정보를 불러오지 못했습니다');
         console.error(err);
-        navigate("/mypage");
+        navigate('/mypage');
       }
     };
     fetchLog();
   }, [id, navigate]);
 
   const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete this log?")) return;
+    if (!window.confirm('Are you sure you want to delete this log?')) return;
     try {
       await logService.deleteLog(id);
-      alert("✅ Log deleted successfully");
-      navigate("/mypage");
+      alert('✅ Log deleted successfully');
+      navigate('/mypage');
     } catch (err) {
-      alert("❌ Failed to delete log");
+      alert('❌ Failed to delete log');
     }
   };
 
@@ -93,22 +91,22 @@ function LogDetailPage() {
 
       if (form.equipment) {
         const eqList =
-          typeof form.equipment === "string"
-            ? form.equipment.split(",").map((e) => e.trim())
+          typeof form.equipment === 'string'
+            ? form.equipment.split(',').map((e) => e.trim())
             : form.equipment;
-        eqList.forEach((eq) => formData.append("equipment", eq));
+        eqList.forEach((eq) => formData.append('equipment', eq));
       }
 
       Object.entries(form).forEach(([key, value]) => {
         if (
           value !== null &&
-          value !== "" &&
-          key !== "equipment" &&
-          key !== "likes" // 백엔드에서 오류나는 필드 제거
+          value !== '' &&
+          key !== 'equipment' &&
+          key !== 'likes' // 백엔드에서 오류나는 필드 제거
         ) {
-          if (key === "dive_image") {
+          if (key === 'dive_image') {
             if (value instanceof File) {
-              formData.append("dive_image", value);
+              formData.append('dive_image', value);
             }
           } else {
             formData.append(key, value);
@@ -118,11 +116,11 @@ function LogDetailPage() {
 
       const result = await logService.updateLog(id, formData);
       setLog(result);
-      alert("✅ Log updated successfully");
+      alert('✅ Log updated successfully');
       setIsEditing(false);
     } catch (err) {
-      console.error("❌ Failed to update log", err.response?.data || err);
-      alert("❌ Failed to update log");
+      console.error('❌ Failed to update log', err.response?.data || err);
+      alert('❌ Failed to update log');
     }
   };
 
@@ -138,12 +136,13 @@ function LogDetailPage() {
     <Layout>
       <div className="max-w-xl mx-auto bg-white rounded-xl shadow-md p-6 space-y-4">
         <div className="flex justify-between items-center">
+          <button onClick={() => navigate(-1)} className="text-blue-600 underline mb-2">
+            ← Back
+          </button>
+
           <h1 className="text-2xl font-bold text-blue-700 mb-2">Dive Log Detail</h1>
           {!isEditing && (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="text-sm text-blue-600 underline"
-            >
+            <button onClick={() => setIsEditing(true)} className="text-sm text-blue-600 underline">
               Edit Log
             </button>
           )}
@@ -159,29 +158,24 @@ function LogDetailPage() {
           />
         )}
         {isEditing && (
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            className="w-full mb-2"
-          />
+          <input type="file" accept="image/*" onChange={handleFileChange} className="w-full mb-2" />
         )}
 
         <div className="space-y-2 text-gray-700">
           {formFields.map(([key, label]) => (
             <p key={key}>
-              <strong>{label}:</strong>{" "}
+              <strong>{label}:</strong>{' '}
               {isEditing ? (
                 <input
-                  type={key === "dive_date" ? "date" : "text"}
+                  type={key === 'dive_date' ? 'date' : 'text'}
                   className="border px-2 py-1 rounded w-full"
-                  value={form[key] || ""}
+                  value={form[key] || ''}
                   onChange={handleChange(key)}
                 />
               ) : Array.isArray(log[key]) ? (
-                log[key].join(", ")
+                log[key].join(', ')
               ) : (
-                log[key] ?? "None"
+                (log[key] ?? 'None')
               )}
             </p>
           ))}
