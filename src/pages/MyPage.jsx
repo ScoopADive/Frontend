@@ -22,6 +22,7 @@ function MyPage({ isOwnPage = true }) {
   const updateUser = useUserStore((state) => state.updateUser);
 
   const [user, setUser] = useState(null);
+  const [profileId, setProfileId] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showBucketInput, setShowBucketInput] = useState(false);
   const [bucketList, setBucketList] = useState([]);
@@ -30,6 +31,7 @@ function MyPage({ isOwnPage = true }) {
   const [spots, setSpots] = useState([]);
   const [mapCenter, setMapCenter] = useState([20, 100]);
   const fileInputRef = useRef(null);
+  const selectedFileRef = useRef(null);
 
   const friends = ["Suzy", "Mina", "Jisoo", "Luca"];
 
@@ -79,7 +81,6 @@ function MyPage({ isOwnPage = true }) {
         if (nameOnly) needGeocode.push(nameOnly);
       }
     }
-
     const uniqueNames = Array.from(new Set(needGeocode));
     const cache = loadGeocodeCache();
     const results = [];
@@ -97,11 +98,9 @@ function MyPage({ isOwnPage = true }) {
       } catch {}
     }
     saveGeocodeCache(cache);
-
     const merged = [...direct, ...results];
     const dedupKey = (s) => `${s.site}-${s.lat.toFixed(4)}-${s.lng.toFixed(4)}`;
     const final = Array.from(new Map(merged.map((s) => [dedupKey(s), s])).values());
-
     if (final.length > 0) {
       const avgLat = final.reduce((a, b) => a + b.lat, 0) / final.length;
       const avgLng = final.reduce((a, b) => a + b.lng, 0) / final.length;
@@ -109,26 +108,52 @@ function MyPage({ isOwnPage = true }) {
     } else {
       setMapCenter([20, 100]);
     }
-
     setSpots(final);
   };
 
+  const hydrateFromServer = async () => {
+    try {
+      const data = await userService.getMyProfile();
+      const profile = Array.isArray(data) ? data[0] : data;
+      setProfileId(profile?.id ?? null);
+      const mapped = {
+        id: profile?.user_id ?? storeUser?.id ?? null,
+        username: profile?.username ?? storeUser?.name ?? storeUser?.username ?? "",
+        email: profile?.email ?? storeUser?.email ?? "",
+        country: profile?.country ?? "",
+        license: profile?.license ?? "Open Water Diver",
+        introduction: profile?.introduction ?? "",
+        profile_image_url: profile?.profile_image ?? storeUser?.profile_image ?? "https://via.placeholder.com/100",
+        specialties: profile?.specialties ?? [],
+      };
+      setUser(mapped);
+      updateUser({
+        id: mapped.id,
+        email: mapped.email,
+        name: mapped.username,
+        country: mapped.country,
+        profile_image: mapped.profile_image_url,
+        username: mapped.username,
+        specialties: mapped.specialties,
+      });
+    } catch {
+      const fallback = {
+        id: storeUser?.id ?? null,
+        username: storeUser?.name || storeUser?.username || "",
+        email: storeUser?.email || "",
+        country: storeUser?.country || "",
+        license: "Open Water Diver",
+        introduction: "",
+        profile_image_url: storeUser?.profile_image || "https://via.placeholder.com/100",
+        specialties: [],
+      };
+      setUser(fallback);
+      setProfileId(null);
+    }
+  };
+
   useEffect(() => {
-    const dummyUser = {
-      id: storeUser?.id ?? null,
-      username: storeUser?.name || storeUser?.username || "Guest",
-      email: storeUser?.email || "guest@example.com",
-      license: storeUser?.country || "Open Water Diver",
-      profilePhoto:
-        storeUser?.profilePhoto ||
-        storeUser?.profile_image ||
-        "https://via.placeholder.com/100",
-      intro: storeUser?.intro || "Welcome to your scuba profile!",
-      specialties: storeUser?.specialties || [],
-    };
-
-    setUser(isOwnPage ? dummyUser : "not-found");
-
+    hydrateFromServer();
     const fetchLogs = async () => {
       try {
         const res = await logService.getMyLogs();
@@ -141,7 +166,6 @@ function MyPage({ isOwnPage = true }) {
         setMapCenter([20, 100]);
       }
     };
-
     const fetchBuckets = async () => {
       try {
         const list = await bucketService.getList(1);
@@ -150,10 +174,9 @@ function MyPage({ isOwnPage = true }) {
         setBucketList([]);
       }
     };
-
     fetchLogs();
     fetchBuckets();
-  }, [username, isOwnPage, storeUser]);
+  }, [username, isOwnPage]);
 
   const handleChange = (field) => (e) => {
     setUser((prev) => ({ ...prev, [field]: e.target.value }));
@@ -164,30 +187,24 @@ function MyPage({ isOwnPage = true }) {
 
   const handleSaveProfile = async () => {
     try {
-      if (user?.id) {
-        let payload = {
-          username: user.username || "",
-          email: user.email || "",
-          country: user.license || "",
-          intro: user.intro || "",
-        };
-        try {
-          await userService.updateProfile(user.id, payload);
-        } catch {}
+      if (!profileId) {
+        alert("Profile is not ready. Try again.");
+        return;
       }
-
-      updateUser({
-        id: storeUser?.id,
-        email: user.email,
-        name: user.username,
-        country: user.license,
-        profilePhoto: user.profilePhoto,
-        profile_image: user.profilePhoto,
-        intro: user.intro,
+      if (!user?.username || !user?.email) {
+        alert("Username and email are required.");
+        return;
+      }
+      const payload = {
         username: user.username,
-        specialties: user.specialties,
-      });
-
+        email: user.email,
+        country: user.country || undefined,
+        license: user.license || undefined,
+        introduction: user.introduction || undefined,
+        profile_image: selectedFileRef.current || undefined,
+      };
+      await userService.updateProfile(profileId, payload);
+      await hydrateFromServer();
       setIsEditing(false);
       alert("Profile saved successfully.");
     } catch {
@@ -197,6 +214,7 @@ function MyPage({ isOwnPage = true }) {
 
   const handleCancelEdit = () => {
     setIsEditing(false);
+    hydrateFromServer();
   };
 
   const handleAddBucket = async () => {
@@ -215,9 +233,10 @@ function MyPage({ isOwnPage = true }) {
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    selectedFileRef.current = file;
     const reader = new FileReader();
     reader.onloadend = () => {
-      setUser((prev) => ({ ...prev, profilePhoto: reader.result }));
+      setUser((prev) => ({ ...prev, profile_image_url: reader.result }));
     };
     reader.readAsDataURL(file);
   };
@@ -246,7 +265,7 @@ function MyPage({ isOwnPage = true }) {
         <div className="w-full lg:w-[320px] space-y-6">
           <div className="bg-white p-6 rounded-xl shadow-md space-y-4 text-center">
             <img
-              src={user.profilePhoto}
+              src={user.profile_image_url}
               alt="Profile"
               className="w-24 h-24 mx-auto rounded-full object-cover"
             />
@@ -281,6 +300,12 @@ function MyPage({ isOwnPage = true }) {
                 />
                 <input
                   className="border p-2 w-full rounded"
+                  placeholder="Enter country"
+                  value={user.country}
+                  onChange={handleChange("country")}
+                />
+                <input
+                  className="border p-2 w-full rounded"
                   placeholder="Enter license"
                   value={user.license}
                   onChange={handleChange("license")}
@@ -288,8 +313,8 @@ function MyPage({ isOwnPage = true }) {
                 <textarea
                   className="border p-2 w-full rounded"
                   placeholder="Enter introduction"
-                  value={user.intro}
-                  onChange={handleChange("intro")}
+                  value={user.introduction}
+                  onChange={handleChange("introduction")}
                 />
                 <div className="flex gap-2">
                   <button
@@ -313,12 +338,15 @@ function MyPage({ isOwnPage = true }) {
                 </h2>
                 <p className="text-sm text-gray-500">{user.email}</p>
                 <p className="text-sm">
-                  <strong>License:</strong> {user.license}
+                  <strong>Country:</strong> {user.country || "-"}
                 </p>
-                <p className="text-gray-600">{user.intro}</p>
+                <p className="text-sm">
+                  <strong>License:</strong> {user.license || "-"}
+                </p>
+                <p className="text-gray-600">{user.introduction}</p>
                 {isOwnPage ? (
                   <button
-                    onClick={toggleEdit}
+                    onClick={() => setIsEditing(true)}
                     className="mt-2 w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded"
                   >
                     Edit Profile
@@ -367,7 +395,7 @@ function MyPage({ isOwnPage = true }) {
                         Add
                       </button>
                       <button
-                        onClick={toggleBucketInput}
+                        onClick={() => setShowBucketInput(false)}
                         className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded font-semibold"
                       >
                         Cancel
@@ -376,7 +404,7 @@ function MyPage({ isOwnPage = true }) {
                   </>
                 ) : (
                   <button
-                    onClick={toggleBucketInput}
+                    onClick={() => setShowBucketInput(true)}
                     className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded font-semibold"
                   >
                     Add Item
