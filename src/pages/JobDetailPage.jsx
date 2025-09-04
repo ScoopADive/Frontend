@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import api from '../api/axios';
 import Layout from '../components/layout/Layout';
 
 function JobDetailPage() {
   const { id } = useParams();
+  const location = useLocation(); // <-- 여기서 state를 가져옴
+  const usersMap = location.state?.usersMap || {}; // HomePage에서 넘어온 usersMap
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -31,7 +33,7 @@ function JobDetailPage() {
       <div className="max-w-2xl mx-auto bg-white shadow-md rounded-xl p-6 space-y-4">
         <h2 className="text-2xl font-bold text-blue-700">💼 {job.title}</h2>
         <p>
-          <span className="font-semibold">ID:</span> {job.id}
+          <span className="font-semibold">User:</span> {usersMap[job.user] ?? 'Unknown'}
         </p>
         <p>
           <span className="font-semibold">Location:</span> {job.location}
@@ -39,8 +41,15 @@ function JobDetailPage() {
         <p>
           <span className="font-semibold">Description:</span> {job.description}
         </p>
-        <p>
-          <span className="font-semibold">User ID:</span> {job.user}
+        <p className="text-xs text-gray-500">
+          <span className="font-semibold">Created At:</span>{' '}
+          {new Date(job.created_at).toLocaleString('ko-KR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+          })}
         </p>
       </div>
     </Layout>
