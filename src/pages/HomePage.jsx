@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../api/axios';
+import { Link } from 'react-router-dom';
+
 import Layout from '../components/layout/Layout';
 import InfoCard from '../components/cards/InfoCard';
 import DiveLogCard from '../components/cards/DiveLogCard';
@@ -23,7 +25,7 @@ function HomePage() {
         setUsersMap(map);
 
         // 2️⃣ 로그북 + 상위 멤버
-        const [logbooksRes, topMembersRes, theMostVisitedSpotsRes] = await Promise.all([
+        const [logbooksRes, topMembersRes, theMostVisitedSpotsRes, jobsRes] = await Promise.all([
           api.get('/logbooks/'),
           api.get('/home/top_level_members'),
           api.get('/home/the_most_visited_spots'),
@@ -52,6 +54,8 @@ function HomePage() {
               })
             : [],
         );
+
+        setJobs(Array.isArray(jobsRes.data.results) ? jobsRes.data.results : []);
       } catch (err) {
         console.error('Failed to fetch home data:', err);
       } finally {
@@ -88,6 +92,22 @@ function HomePage() {
               items={theMostVisitedSpots}
               ordered
             />
+          </div>
+          <div className="bg-white rounded-xl shadow-md p-4">
+            <h3 className="text-lg font-semibold mb-2 text-gray-800">💼 Jobs</h3>
+            {jobs.length > 0 ? (
+              <ul className="list-disc list-inside text-gray-700 space-y-1">
+                {jobs.map((job) => (
+                  <li key={job.id}>
+                    <Link to={`/home/jobs/${job.id}`} className="text-blue-600 hover:underline">
+                      {job.title} - {job.location} ({usersMap[job.user] ?? 'Unknown'})
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-500">No jobs available.</p>
+            )}
           </div>
         </div>
       </div>
