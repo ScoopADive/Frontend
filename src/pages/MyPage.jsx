@@ -15,6 +15,57 @@ import logService from "../services/logService";
 import bucketService from "../services/bucketService";
 import userService from "../services/userService";
 
+/* -------------------------------------------------------
+   드롭다운 옵션 (value 그대로 서버로 전송됨)
+   - country: 필요 시 더 추가 가능
+   - license: Swagger 문서의 PADI 계열을 주요 위주로 수록
+------------------------------------------------------- */
+const COUNTRY_OPTIONS = [
+  { label: "Select country", value: "" },
+  { label: "Korea (Republic of)", value: "Korea" },
+  { label: "Japan", value: "Japan" },
+  { label: "United States", value: "United States" },
+  { label: "Australia", value: "Australia" },
+  { label: "Indonesia", value: "Indonesia" },
+  { label: "Philippines", value: "Philippines" },
+  { label: "Malaysia", value: "Malaysia" },
+  { label: "Vietnam", value: "Vietnam" },
+  { label: "Thailand", value: "Thailand" },
+];
+
+const LICENSE_OPTIONS = [
+  { label: "Select license", value: "" },
+  { label: "PADI Scuba Diver", value: "PADI Scuba Diver" },
+  { label: "PADI Open Water Diver", value: "PADI Open Water Diver" },
+  { label: "PADI Advanced Open Water Diver", value: "PADI Advanced Open Water Diver" },
+  { label: "PADI Adventure Diver", value: "PADI Adventure Diver" },
+  { label: "PADI Rescue Diver", value: "PADI Rescue Diver" },
+  { label: "Emergency First Response (EFR)", value: "Emergency First Response (EFR)" },
+  { label: "PADI Deep Diver", value: "PADI Deep Diver" },
+  { label: "PADI Night Diver", value: "PADI Night Diver" },
+  { label: "PADI Wreck Diver", value: "PADI Wreck Diver" },
+  { label: "Peak Performance Buoyancy", value: "Peak Performance Buoyancy" },
+  { label: "Enriched Air Diver (Nitrox)", value: "Enriched Air Diver (Nitrox)" },
+  { label: "PADI Digital Underwater Photographer", value: "PADI Digital Underwater Photographer" },
+  { label: "PADI Divemaster", value: "PADI Divemaster" },
+  { label: "PADI Assistant Instructor", value: "PADI Assistant Instructor" },
+  { label: "PADI Open Water Scuba Instructor (OWSI)", value: "PADI Open Water Scuba Instructor (OWSI)" },
+  { label: "PADI Specialty Instructor", value: "PADI Specialty Instructor" },
+  { label: "PADI Master Scuba Diver Trainer (MSDT)", value: "PADI Master Scuba Diver Trainer (MSDT)" },
+  { label: "PADI IDC Staff Instructor", value: "PADI IDC Staff Instructor" },
+  { label: "PADI Master Instructor", value: "PADI Master Instructor" },
+  { label: "PADI Course Director", value: "PADI Course Director" },
+  { label: "Tec 40", value: "Tec 40" },
+  { label: "Tec 45", value: "Tec 45" },
+  { label: "Tec 50", value: "Tec 50" },
+  { label: "Tec Trimix 65", value: "Tec Trimix 65" },
+  { label: "Tec Trimix Diver", value: "Tec Trimix Diver" },
+  { label: "Tec Sidemount Diver", value: "Tec Sidemount Diver" },
+  { label: "Tec Gas Blender", value: "Tec Gas Blender" },
+  { label: "PADI Rebreather Diver", value: "PADI Rebreather Diver" },
+  { label: "Advanced Rebreather Diver", value: "Advanced Rebreather Diver" },
+];
+
 function MyPage({ isOwnPage = true }) {
   const { username } = useParams();
   const navigate = useNavigate();
@@ -198,10 +249,10 @@ function MyPage({ isOwnPage = true }) {
       const payload = {
         username: user.username,
         email: user.email,
-        country: user.country || undefined,
-        license: user.license || undefined,
+        country: user.country || undefined,      // 드롭다운 value 그대로 전송
+        license: user.license || undefined,      // 드롭다운 value 그대로 전송
         introduction: user.introduction || undefined,
-        profile_image: selectedFileRef.current || undefined,
+        profile_image: selectedFileRef.current || undefined, // 파일 있을 때만 포함
       };
       await userService.updateProfile(profileId, payload);
       await hydrateFromServer();
@@ -286,6 +337,7 @@ function MyPage({ isOwnPage = true }) {
                     Change Photo
                   </button>
                 </div>
+
                 <input
                   className="border p-2 w-full rounded"
                   placeholder="Enter username"
@@ -298,24 +350,40 @@ function MyPage({ isOwnPage = true }) {
                   value={user.email}
                   onChange={handleChange("email")}
                 />
-                <input
-                  className="border p-2 w-full rounded"
-                  placeholder="Enter country"
-                  value={user.country}
+
+                {/* country: 텍스트 → 드롭다운 */}
+                <select
+                  className="border p-2 w-full rounded bg-white"
+                  value={user.country ?? ""}
                   onChange={handleChange("country")}
-                />
-                <input
-                  className="border p-2 w-full rounded"
-                  placeholder="Enter license"
-                  value={user.license}
+                >
+                  {COUNTRY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+
+                {/* license: 텍스트 → 드롭다운 */}
+                <select
+                  className="border p-2 w-full rounded bg-white"
+                  value={user.license ?? ""}
                   onChange={handleChange("license")}
-                />
+                >
+                  {LICENSE_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+
                 <textarea
                   className="border p-2 w-full rounded"
                   placeholder="Enter introduction"
                   value={user.introduction}
                   onChange={handleChange("introduction")}
                 />
+
                 <div className="flex gap-2">
                   <button
                     onClick={handleSaveProfile}
