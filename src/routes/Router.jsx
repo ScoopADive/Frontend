@@ -17,78 +17,81 @@ import AllLogsPage from '../pages/AllLogsPage';
 import { AUTH_ROUTES } from '../constants/routes';
 import TrainingPage from '../pages/TrainingPage';
 import JobDetailPage from '../pages/JobDetailPage';
+import { UsersProvider } from '../context/UsersContext';
 
 export default function AppRouter() {
   return (
-    <Router>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/home" element={<HomePage />} />
-        <Route path="/training" element={<TrainingPage />} />
-        <Route path="/signin" element={<SignInPage />} />
-        <Route path="/signup" element={<SignUpPage />} />
-        <Route path={AUTH_ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
-        <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
-        <Route
-          path="/settings"
-          element={
-            <ProtectedRoute>
-              <SettingsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/help"
-          element={
-            <ProtectedRoute>
-              <HelpPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/logs" element={<AllLogsPage />} />
-        <Route
-          path="/log/new"
-          element={
-            <ProtectedRoute>
-              <LogCreatePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/log/:id"
-          element={
-            <ProtectedRoute>
-              <LogDetailPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/mypage"
-          element={
-            <ProtectedRoute>
-              <MyPage isOwnPage={true} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/user/:username"
-          element={
-            <ProtectedRoute>
-              <MyPage isOwnPage={false} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/chat/:username"
-          element={
-            <ProtectedRoute>
-              <ChatPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/home/jobs/:id" element={<JobDetailPage />} />
-      </Routes>
-    </Router>
+    <UsersProvider>
+      <Router>
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/home" element={<HomePage />} />
+          <Route path="/training" element={<TrainingPage />} />
+          <Route path="/signin" element={<SignInPage />} />
+          <Route path="/signup" element={<SignUpPage />} />
+          <Route path={AUTH_ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
+          <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <SettingsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/help"
+            element={
+              <ProtectedRoute>
+                <HelpPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/logs" element={<AllLogsPage />} />
+          <Route
+            path="/log/new"
+            element={
+              <ProtectedRoute>
+                <LogCreatePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/log/:id"
+            element={
+              <ProtectedRoute>
+                <LogDetailPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/mypage"
+            element={
+              <ProtectedRoute>
+                <MyPage isOwnPage={true} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/user/:username"
+            element={
+              <ProtectedRoute>
+                <MyPage isOwnPage={false} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/chat/:username"
+            element={
+              <ProtectedRoute>
+                <ChatPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/home/jobs/:id" element={<JobDetailPage />} />
+        </Routes>
+      </Router>
+    </UsersProvider>
   );
 }
