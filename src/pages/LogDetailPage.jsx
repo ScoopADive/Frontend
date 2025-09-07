@@ -197,10 +197,10 @@ function LogDetailPage() {
           ) : (
             <div className="space-y-1">
               <p>
-                <strong>Author:</strong> {usersMap?.[log.user] ?? 'Unknown'}
+                <strong>Diver:</strong> {usersMap?.[log.user] ?? 'Unknown'}
               </p>
               <p>
-                <strong>Buddy:</strong> {usersMap?.[log.buddy] ?? 'Unknown'}
+                <strong>Buddy:</strong> {usersMap?.[log.buddy] ?? log.buddy ?? 'Unknown'}
               </p>
               <p>
                 <strong>Dive Center:</strong> {log.dive_center_name}
@@ -242,13 +242,14 @@ function LogDetailPage() {
           )}
 
           {/* 카드 안 버튼: 작성자만 */}
+          {/* 카드 안: 작성자만 */}
           {isOwner && !isEditing && (
-            <div className="flex gap-2 mt-4">
+            <div className="flex gap-6 mt-6 text-sm font-medium">
               <button
                 onClick={() => setIsEditing(true)}
-                className="bg-yellow-400 hover:bg-yellow-500 text-white font-semibold py-1 px-3 rounded-lg shadow-md transition-all"
+                className="text-blue-600 underline hover:text-blue-800 transition-colors"
               >
-                Edit
+                ✏️ Edit
               </button>
 
               <button
@@ -258,21 +259,9 @@ function LogDetailPage() {
                     navigate('/mypage');
                   }
                 }}
-                className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-400"
+                className="text-red-600 underline hover:text-red-800 transition-colors"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M6 2a1 1 0 00-1 1v1H3.5a.5.5 0 000 1H4v11a2 2 0 002 2h8a2 2 0 002-2V5h.5a.5.5 0 000-1H15V3a1 1 0 00-1-1H6zm3 4a.5.5 0 011 0v7a.5.5 0 01-1 0V6zm-3 0a.5.5 0 011 0v7a.5.5 0 01-1 0V6zm6 0a.5.5 0 011 0v7a.5.5 0 01-1 0V6z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span>Delete Log</span>
+                🗑️ Delete
               </button>
             </div>
           )}

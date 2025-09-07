@@ -52,12 +52,11 @@ function HomePage() {
 
         setTheMostVisitedSpots(
           Array.isArray(spotsRes.data)
-            ? spotsRes.data.map(([locationStr, count]) => {
-                const parts = locationStr.split(',').map((s) => s.trim());
-                const country = parts.pop();
-                const location = parts.join(', ');
-                return { location, country, count };
-              })
+            ? spotsRes.data.map(([locationStr, count]) => ({
+                location: locationStr, // 그대로 locationStr 사용
+                country: '', // country는 비워두거나 필요 없으면 삭제
+                count,
+              }))
             : [],
         );
 
