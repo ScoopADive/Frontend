@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../api/axios';
 import Layout from '../components/layout/Layout';
-import { useUsers } from '../context/UsersContext'; // ✅ context 불러오기
+import { useUsers } from '../context/UsersContext'; // ✅ Context 불러오기
 
 function JobDetailPage() {
   const { id } = useParams();
-  const { usersMap } = useUsers(); // ✅ context 사용
+  const { usersMap } = useUsers();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -33,7 +33,7 @@ function JobDetailPage() {
       <div className="max-w-2xl mx-auto bg-white shadow-md rounded-xl p-6 space-y-4">
         <h2 className="text-2xl font-bold text-blue-700">💼 {job.title}</h2>
         <p>
-          <span className="font-semibold">User:</span> {usersMap[job.user] ?? job.user ?? 'Unknown'}
+          <span className="font-semibold">User:</span> {usersMap[job.user] ?? 'Unknown'}
         </p>
         <p>
           <span className="font-semibold">Location:</span> {job.location}
