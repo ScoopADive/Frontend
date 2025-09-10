@@ -1,3 +1,4 @@
+// src/pages/MyPage.jsx
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
@@ -15,10 +16,11 @@ import logService from "../services/logService";
 import bucketService from "../services/bucketService";
 import userService from "../services/userService";
 
+// keep: limited message composer only
+import MessageComposer from "../components/messages/MessageComposer";
+
 /* -------------------------------------------------------
-   드롭다운 옵션 (value 그대로 서버로 전송됨)
-   - country: 필요 시 더 추가 가능
-   - license: Swagger 문서의 PADI 계열을 주요 위주로 수록
+   Dropdown options sent as-is to the server
 ------------------------------------------------------- */
 const COUNTRY_OPTIONS = [
   { label: "Select country", value: "" },
@@ -84,7 +86,17 @@ function MyPage({ isOwnPage = true }) {
   const fileInputRef = useRef(null);
   const selectedFileRef = useRef(null);
 
-  const friends = ["Suzy", "Mina", "Jisoo", "Luca"];
+  // demo friends list
+  const friends = [
+    { id: 11, username: "Suzy", displayName: "Suzy" },
+    { id: 12, username: "Mina", displayName: "Mina" },
+    { id: 13, username: "Jisoo", displayName: "Jisoo" },
+    { id: 14, username: "Luca", displayName: "Luca" },
+  ];
+
+  // message composer state
+  const [composerOpen, setComposerOpen] = useState(false);
+  const [composerReceiver, setComposerReceiver] = useState(null);
 
   const getField = (obj, keys) => {
     for (const k of keys) {
@@ -233,9 +245,6 @@ function MyPage({ isOwnPage = true }) {
     setUser((prev) => ({ ...prev, [field]: e.target.value }));
   };
 
-  const toggleEdit = () => setIsEditing((prev) => !prev);
-  const toggleBucketInput = () => setShowBucketInput((prev) => !prev);
-
   const handleSaveProfile = async () => {
     try {
       if (!profileId) {
@@ -249,10 +258,10 @@ function MyPage({ isOwnPage = true }) {
       const payload = {
         username: user.username,
         email: user.email,
-        country: user.country || undefined,      // 드롭다운 value 그대로 전송
-        license: user.license || undefined,      // 드롭다운 value 그대로 전송
+        country: user.country || undefined,
+        license: user.license || undefined,
         introduction: user.introduction || undefined,
-        profile_image: selectedFileRef.current || undefined, // 파일 있을 때만 포함
+        profile_image: selectedFileRef.current || undefined,
       };
       await userService.updateProfile(profileId, payload);
       await hydrateFromServer();
@@ -290,6 +299,18 @@ function MyPage({ isOwnPage = true }) {
       setUser((prev) => ({ ...prev, profile_image_url: reader.result }));
     };
     reader.readAsDataURL(file);
+  };
+
+  // message: open composer from a friend card
+  const openComposerFor = (friend) => {
+    setComposerReceiver(friend);
+    setComposerOpen(true);
+  };
+
+  // message: open composer for the profile owner
+  const openComposerForProfileUser = () => {
+    if (!user) return;
+    openComposerFor({ id: user.id, username: user.username, displayName: user.username });
   };
 
   if (user === "not-found") {
@@ -351,7 +372,6 @@ function MyPage({ isOwnPage = true }) {
                   onChange={handleChange("email")}
                 />
 
-                {/* country: 텍스트 → 드롭다운 */}
                 <select
                   className="border p-2 w-full rounded bg-white"
                   value={user.country ?? ""}
@@ -364,7 +384,6 @@ function MyPage({ isOwnPage = true }) {
                   ))}
                 </select>
 
-                {/* license: 텍스트 → 드롭다운 */}
                 <select
                   className="border p-2 w-full rounded bg-white"
                   value={user.license ?? ""}
@@ -421,10 +440,10 @@ function MyPage({ isOwnPage = true }) {
                   </button>
                 ) : (
                   <button
-                    onClick={() => navigate(`/chat/${user.username}`)}
+                    onClick={openComposerForProfileUser}
                     className="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded"
                   >
-                    💬 Send Message
+                    Send Message
                   </button>
                 )}
               </>
@@ -433,7 +452,7 @@ function MyPage({ isOwnPage = true }) {
 
           <div className="bg-white p-4 rounded-xl shadow-md">
             <h3 className="text-lg font-semibold mb-2 text-gray-800">
-              📌 Bucket List
+              Bucket List
             </h3>
             {bucketList.length === 0 ? (
               <p className="text-gray-500">No items added yet.</p>
@@ -485,23 +504,29 @@ function MyPage({ isOwnPage = true }) {
           {isOwnPage && (
             <div className="bg-white p-4 rounded-xl shadow-md space-y-2">
               <h3 className="text-lg font-semibold mb-2 text-gray-800">
-                👥 Friends
+                Friends
               </h3>
-              <ul className="list-disc list-inside text-gray-700">
-                {friends.map((friend, idx) => (
-                  <li key={idx}>
+              <ul className="space-y-2">
+                {friends.map((friend) => (
+                  <li key={friend.id} className="flex items-center justify-between">
                     <Link
-                      to={`/user/${friend}`}
+                      to={`/user/${friend.username}`}
                       className="text-blue-600 hover:underline"
                     >
-                      {friend}
+                      {friend.displayName}
                     </Link>
+                    <button
+                      onClick={() => openComposerFor(friend)}
+                      className="text-sm bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-md"
+                    >
+                      Message
+                    </button>
                   </li>
                 ))}
               </ul>
               <button
                 onClick={() => alert("Friend adding functionality coming soon.")}
-                className="mt-2 w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded font-semibold"
+                className="mt-2 w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded font-semibold"
               >
                 Add Friend
               </button>
@@ -512,7 +537,7 @@ function MyPage({ isOwnPage = true }) {
         <div className="flex-1 space-y-6">
           <SkillCard
             skill={{
-              title: "🏅 My Skills",
+              title: "My Skills",
               level: user.license,
               specialties: user.specialties,
               logs: logs.length,
@@ -522,7 +547,7 @@ function MyPage({ isOwnPage = true }) {
 
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-2">
-              📘 {isOwnPage ? "My" : `${user.username}'s`} Dive Logs
+              {isOwnPage ? "My" : `${user.username}'s`} Dive Logs
             </h3>
             {logs.length === 0 ? (
               <div className="w-full bg-gray-50 border border-dashed border-gray-300 rounded-xl p-6 text-center text-gray-600">
@@ -562,6 +587,13 @@ function MyPage({ isOwnPage = true }) {
           ✍️ Add Log
         </button>
       )}
+
+      {/* message composer modal */}
+      <MessageComposer
+        isOpen={composerOpen}
+        onClose={() => setComposerOpen(false)}
+        defaultReceiver={composerReceiver}
+      />
     </Layout>
   );
 }
