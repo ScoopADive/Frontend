@@ -27,7 +27,6 @@ const UserMenu = () => {
 
   const handleLogout = () => {
     authService.logout();
-    navigate("/");
   };
 
   return (

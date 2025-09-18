@@ -1,6 +1,3 @@
-// src/store/userStore.js
-// 설명: 사용자 세션 저장소. setSession, logout 제공.
-
 import { create } from 'zustand';
 
 const STORAGE_KEYS = {
@@ -16,6 +13,19 @@ const useUserStore = create((set, get) => ({
   isAuthenticated: false,
   loading: false,
   error: null,
+
+  hydrate: () => {
+    const id = localStorage.getItem(STORAGE_KEYS.ID);
+    const email = localStorage.getItem(STORAGE_KEYS.EMAIL);
+    const name = localStorage.getItem(STORAGE_KEYS.NAME);
+    const access = localStorage.getItem(STORAGE_KEYS.ACCESS);
+    const refresh = localStorage.getItem(STORAGE_KEYS.REFRESH);
+    const isAuthed = Boolean(access && refresh);
+    set({
+      user: isAuthed ? { id, email, name } : null,
+      isAuthenticated: isAuthed,
+    });
+  },
 
   setUser: (user) =>
     set({
@@ -41,9 +51,7 @@ const useUserStore = create((set, get) => ({
   logout: () => {
     try {
       Object.values(STORAGE_KEYS).forEach((k) => localStorage.removeItem(k));
-    } catch (_) {
-      // noop
-    }
+    } catch {}
     set({ user: null, isAuthenticated: false, loading: false, error: null });
   },
 
@@ -52,7 +60,7 @@ const useUserStore = create((set, get) => ({
 
   updateUser: (updates) =>
     set((state) => ({
-      user: { ...state.user, ...updates },
+      user: { ...(state.user || {}), ...updates },
     })),
 }));
 

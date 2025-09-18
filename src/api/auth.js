@@ -5,7 +5,7 @@ export const signIn = async (email, password) => {
     const res = await api.post('auths/signin/', { email, password });
     return res.data;
   } catch (err) {
-    return { error: err?.response?.data || "Sign in failed" };
+    return { error: err?.response?.data || 'Sign in failed' };
   }
 };
 
@@ -19,19 +19,16 @@ export const signUp = async ({ email, username, password, country }) => {
     });
     return res.data;
   } catch (err) {
-    return { error: err?.response?.data || "Sign up failed" };
+    return { error: err?.response?.data || 'Sign up failed' };
   }
 };
 
 export const refreshAccessToken = async (refreshToken) => {
   try {
-    const res = await api.post('auths/token/refresh/', {
-      refresh: refreshToken,
-    });
+    const res = await api.post('auths/token/refresh/', { refresh: refreshToken });
     return res.data;
   } catch (err) {
-    // refresh 만료 시 로그아웃 등 후속 처리 필요
-    return { error: err?.response?.data || "Token refresh failed" };
+    return { error: err?.response?.data || 'Token refresh failed' };
   }
 };
 
@@ -40,7 +37,7 @@ export const requestPasswordReset = async (email) => {
     const res = await api.post('password-reset/request/', { email });
     return res.data;
   } catch (err) {
-    return { error: err?.response?.data || "Password reset request failed" };
+    return { error: err?.response?.data || 'Password reset request failed' };
   }
 };
 
@@ -49,7 +46,7 @@ export const verifyResetCode = async (email, code) => {
     const res = await api.post('password-reset/verify/', { email, code });
     return res.data;
   } catch (err) {
-    return { error: err?.response?.data || "Code verification failed" };
+    return { error: err?.response?.data || 'Code verification failed' };
   }
 };
 
@@ -61,6 +58,6 @@ export const confirmNewPassword = async (email, newPassword) => {
     });
     return res.data;
   } catch (err) {
-    return { error: err?.response?.data || "Password change failed" };
+    return { error: err?.response?.data || 'Password change failed' };
   }
 };

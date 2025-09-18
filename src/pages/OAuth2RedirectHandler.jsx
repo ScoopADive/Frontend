@@ -1,7 +1,14 @@
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import authService from '../services/authService';
 import useUserStore from '../store/userStore';
+
+const STORAGE_KEYS = {
+  ACCESS: 'access_token',
+  REFRESH: 'refresh_token',
+  EMAIL: 'email',
+  NAME: 'name',
+  ID: 'id',
+};
 
 const OAuth2RedirectHandler = () => {
   const location = useLocation();
@@ -10,22 +17,23 @@ const OAuth2RedirectHandler = () => {
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-    const token = params.get('token');
+    const access = params.get('token') || params.get('access') || params.get('access_token');
+    const refresh = params.get('refresh') || params.get('refresh_token');
     const email = params.get('email');
-    const name = params.get('name');
-    const id = params.get('id'); // id 받아오기
+    const name = params.get('name') || params.get('username');
+    const id = params.get('id');
 
-    if (token && email && id) {
-      // 토큰 및 유저 정보 저장
-      localStorage.setItem('access_token', token);
-      localStorage.setItem('email', email);
-      localStorage.setItem('name', name);
-      localStorage.setItem('id', id); // 추가
+    if (access && email && id) {
+      try {
+        localStorage.setItem(STORAGE_KEYS.ACCESS, access);
+        if (refresh) localStorage.setItem(STORAGE_KEYS.REFRESH, refresh);
+        localStorage.setItem(STORAGE_KEYS.EMAIL, email);
+        if (name) localStorage.setItem(STORAGE_KEYS.NAME, name);
+        localStorage.setItem(STORAGE_KEYS.ID, id.toString());
+      } catch {}
 
-      // Zustand에 사용자 정보 반영
-      setUser({ id, email, name });
-
-      navigate('/mypage'); // 로그인 후 마이페이지로 이동
+      setUser({ id: id.toString(), email, name: name || '' });
+      navigate('/mypage');
     } else {
       alert('로그인 처리에 실패했습니다.');
       navigate('/signin');
