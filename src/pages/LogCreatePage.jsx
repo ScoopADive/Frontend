@@ -1,3 +1,4 @@
+// src/pages/LogCreatePage.jsx
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
@@ -5,6 +6,7 @@ import Input from '../components/common/Input';
 import logService from '../services/logService';
 import useUserStore from '../store/userStore';
 import DiveSiteSelector from '../components/common/DiveSiteSelector';
+import api from '../api/axios';
 
 function LogCreatePage() {
   const navigate = useNavigate();
@@ -40,7 +42,7 @@ function LogCreatePage() {
   };
 
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files && e.target.files[0];
     if (file) {
       setSelectedImageName(file.name);
       setForm((prev) => ({ ...prev, dive_image: file }));
@@ -101,7 +103,8 @@ function LogCreatePage() {
     'weight',
   ];
 
-  const handleSubmit = async () => {
+  // 게시 여부를 묻는 흐름
+  const handleSubmitWithPrompt = async () => {
     const missing = requiredFields.filter((f) => !form[f]);
     if (missing.length > 0) {
       alert(`❌ Missing required fields: ${missing.join(', ')}`);
@@ -110,16 +113,14 @@ function LogCreatePage() {
 
     try {
       const formData = new FormData();
-      // equipment 배열
       form.equipment.forEach((eq) => formData.append('equipment', eq));
 
-      // 나머지 필드
       Object.entries(form).forEach(([key, value]) => {
         if (key === 'equipment') return;
 
         if (key === 'buddy') {
           if (value !== null && value !== '') {
-            formData.append('buddy', value); // 문자열 그대로 전달
+            formData.append('buddy', value);
           }
         } else if (key === 'dive_center') {
           const centerId = Number(value);
@@ -129,13 +130,78 @@ function LogCreatePage() {
             formData.append('latitude', value[0]);
             formData.append('longitude', value[1]);
           }
+        } else if (key === 'dive_image') {
+          if (value) formData.append('dive_image', value);
         } else if (value !== null && value !== '') {
           formData.append(key, value);
         }
       });
 
       const result = await logService.createLog(formData);
-      alert('✅ Log created successfully!');
+
+      // 여기서 한 번 물어봄
+      const wantPublish = window.confirm('로그가 저장되었습니다. 지금 게시하시겠습니까? (사진 필수)');
+      if (wantPublish) {
+        // 사진 필수 확인
+        if (!form.dive_image) {
+          alert('사진이 필요합니다. 사진을 추가한 뒤 다시 게시해주세요.');
+          // 생성된 상세 페이지로 이동해서 이어서 수정/게시하도록 유도
+          navigate(`/log/${result.id}`);
+          return;
+        }
+        try {
+          await api.post(`/logbooks/${result.id}/publish/`);
+          alert('✅ 게시가 완료되었습니다.');
+        } catch (err) {
+          alert('❌ 게시 실패: ' + (err?.response?.data?.detail || err?.message));
+        }
+      } else {
+        alert('저장되었습니다.');
+      }
+
+      navigate(`/log/${result.id}`);
+    } catch (err) {
+      const detail = err.response?.data?.detail || err.message;
+      alert('❌ Log creation failed: ' + detail);
+    }
+  };
+
+  // 초안 저장만 (질문 없이)
+  const handleSubmitDraftOnly = async () => {
+    const missing = requiredFields.filter((f) => !form[f]);
+    if (missing.length > 0) {
+      alert(`❌ Missing required fields: ${missing.join(', ')}`);
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      form.equipment.forEach((eq) => formData.append('equipment', eq));
+
+      Object.entries(form).forEach(([key, value]) => {
+        if (key === 'equipment') return;
+
+        if (key === 'buddy') {
+          if (value !== null && value !== '') {
+            formData.append('buddy', value);
+          }
+        } else if (key === 'dive_center') {
+          const centerId = Number(value);
+          if (centerId) formData.append('dive_center', centerId);
+        } else if (key === 'dive_coords') {
+          if (value && Array.isArray(value)) {
+            formData.append('latitude', value[0]);
+            formData.append('longitude', value[1]);
+          }
+        } else if (key === 'dive_image') {
+          if (value) formData.append('dive_image', value);
+        } else if (value !== null && value !== '') {
+          formData.append(key, value);
+        }
+      });
+
+      const result = await logService.createLog(formData);
+      alert('✅ Draft saved.');
       navigate(`/log/${result.id}`);
     } catch (err) {
       const detail = err.response?.data?.detail || err.message;
@@ -184,65 +250,55 @@ function LogCreatePage() {
                         label="Dive Title"
                         value={form.dive_title}
                         placeholder="Enter the title"
-                        onChange={(e) =>
-                          setForm((prev) => ({ ...prev, dive_title: e.target.value }))
-                        }
+                        onChange={(e) => setForm((prev) => ({ ...prev, dive_title: e.target.value }))}
                       />
+
                       <label className="block text-sm font-medium text-gray-700">Dive Site</label>
                       <DiveSiteSelector
                         value={form.dive_site}
                         onChange={(name) => setForm((prev) => ({ ...prev, dive_site: name }))}
-                        onCoordsChange={(coords) =>
-                          setForm((prev) => ({ ...prev, dive_coords: coords }))
-                        }
+                        onCoordsChange={(coords) => setForm((prev) => ({ ...prev, dive_coords: coords }))}
                       />
+
                       <Input
                         label="Dive Date"
                         type="date"
                         value={form.dive_date}
-                        onChange={(e) =>
-                          setForm((prev) => ({ ...prev, dive_date: e.target.value }))
-                        }
+                        onChange={(e) => setForm((prev) => ({ ...prev, dive_date: e.target.value }))}
                       />
                     </>
                   )}
+
                   {section.id === 'depth' && (
                     <>
                       <Input
                         label="Bottom Time"
                         value={form.bottom_time}
                         placeholder="00:00:00"
-                        onChange={(e) =>
-                          setForm((prev) => ({ ...prev, bottom_time: e.target.value }))
-                        }
+                        onChange={(e) => setForm((prev) => ({ ...prev, bottom_time: e.target.value }))}
                       />
                       <Input
                         label="Max Depth (m)"
                         type="number"
                         value={form.max_depth}
-                        onChange={(e) =>
-                          setForm((prev) => ({ ...prev, max_depth: e.target.value }))
-                        }
+                        onChange={(e) => setForm((prev) => ({ ...prev, max_depth: e.target.value }))}
                       />
                     </>
                   )}
+
                   {section.id === 'equipment' && (
                     <>
                       <Input
                         label="Start Pressure (bar)"
                         type="number"
                         value={form.start_pressure}
-                        onChange={(e) =>
-                          setForm((prev) => ({ ...prev, start_pressure: e.target.value }))
-                        }
+                        onChange={(e) => setForm((prev) => ({ ...prev, start_pressure: e.target.value }))}
                       />
                       <Input
                         label="End Pressure (bar)"
                         type="number"
                         value={form.end_pressure}
-                        onChange={(e) =>
-                          setForm((prev) => ({ ...prev, end_pressure: e.target.value }))
-                        }
+                        onChange={(e) => setForm((prev) => ({ ...prev, end_pressure: e.target.value }))}
                       />
                       <Input
                         label="Weight (kg)"
@@ -250,6 +306,7 @@ function LogCreatePage() {
                         value={form.weight}
                         onChange={(e) => setForm((prev) => ({ ...prev, weight: e.target.value }))}
                       />
+
                       <label className="block text-sm font-medium text-gray-700">
                         Equipment (Enter to add)
                       </label>
@@ -272,6 +329,7 @@ function LogCreatePage() {
                       </div>
                     </>
                   )}
+
                   {section.id === 'environment' && (
                     <>
                       <label className="block text-sm font-medium text-gray-700">Weather</label>
@@ -285,14 +343,11 @@ function LogCreatePage() {
                         <option value="rainy">Rainy</option>
                         <option value="stormy">Stormy</option>
                       </select>
-                      <label className="block text-sm font-medium text-gray-700">
-                        Type of Dive
-                      </label>
+
+                      <label className="block text-sm font-medium text-gray-700">Type of Dive</label>
                       <select
                         value={form.type_of_dive}
-                        onChange={(e) =>
-                          setForm((prev) => ({ ...prev, type_of_dive: e.target.value }))
-                        }
+                        onChange={(e) => setForm((prev) => ({ ...prev, type_of_dive: e.target.value }))}
                         className="border p-2 w-full rounded"
                       >
                         <option value="fun">Fun</option>
@@ -303,6 +358,7 @@ function LogCreatePage() {
                       </select>
                     </>
                   )}
+
                   {section.id === 'experience' && (
                     <>
                       <input type="file" accept="image/*" onChange={handleFileChange} />
@@ -310,12 +366,9 @@ function LogCreatePage() {
                         <p className="text-xs text-gray-500">Selected: {selectedImageName}</p>
                       )}
                       {imagePreview && (
-                        <img
-                          src={imagePreview}
-                          alt="Preview"
-                          className="w-full max-h-80 rounded-xl object-cover"
-                        />
+                        <img src={imagePreview} alt="Preview" className="w-full max-h-80 rounded-xl object-cover" />
                       )}
+
                       <Input
                         label="Dive Center (ID)"
                         placeholder="Enter dive center ID"
@@ -346,14 +399,17 @@ function LogCreatePage() {
             >
               Reset All
             </button>
-            <button className="bg-gray-500 text-white py-2.5 rounded-lg hover:bg-gray-600 w-full">
+            <button
+              onClick={handleSubmitDraftOnly}
+              className="bg-gray-500 text-white py-2.5 rounded-lg hover:bg-gray-600 w-full"
+            >
               Save as Draft
             </button>
             <button
-              onClick={handleSubmit}
+              onClick={handleSubmitWithPrompt}
               className="bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 w-full"
             >
-              Publish
+              Save & Publish
             </button>
           </div>
         </div>
@@ -388,7 +444,7 @@ function LogCreatePage() {
                 <div
                   className="bg-gradient-to-r from-blue-500 to-blue-400 h-2.5 rounded-full"
                   style={{ width: `${progressPercent}%` }}
-                ></div>
+                />
               </div>
             </div>
           </div>
