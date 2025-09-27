@@ -1,3 +1,4 @@
+// src/pages/SignInPage.jsx
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
@@ -16,7 +17,6 @@ function SignInPage() {
   const navigate = useNavigate();
   const setUser = useUserStore((state) => state.setUser);
 
-  // 일반 로그인
   const handleSubmit = async () => {
     if (loading) return;
     setLoading(true);
@@ -35,14 +35,10 @@ function SignInPage() {
     }
   };
 
-  // 구글 로그인
-  // SignInPage.js
   const handleGoogleLogin = () => {
     if (googleLoading) return;
     setGoogleLoading(true);
     setError('');
-
-    // 브라우저 직접 이동 (axios로 호출 NO)
     window.location.href = 'https://scoopadive.com/api/accounts/google/login/';
   };
 
