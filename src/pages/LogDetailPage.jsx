@@ -7,8 +7,9 @@ import logService from "../services/logService";
 import authService from "../services/authService";
 import api from "../api/axios";
 import { useUsers } from "../context/UsersContext";
+import WordPressLoginButton from "../components/buttons/WordPressLoginButton";
+import WordPressPublishButton from "../components/buttons/WordPressPublishButton";
 
-/* 요약 카드 */
 function MetricCard({ label, value }) {
   return (
     <div className="rounded-lg bg-white border border-gray-100 px-3 py-2">
@@ -20,7 +21,6 @@ function MetricCard({ label, value }) {
   );
 }
 
-/* 읽기용 행 (라벨 폭 고정) */
 function ReadRow({ leftLabel, leftValue, rightLabel, rightValue }) {
   return (
     <div className="grid grid-cols-2 gap-6 py-2">
@@ -56,7 +56,6 @@ function LogDetailPage() {
   const BASE_URL = "https://scoopadive.com";
   const fileInputRef = useRef(null);
 
-  // 폼 채우기 유틸
   const fillFormFrom = (data) =>
     setForm({
       dive_title: data?.dive_title || "",
@@ -73,7 +72,7 @@ function LogDetailPage() {
         Array.isArray(data?.equipment) && data.equipment.length > 0
           ? data.equipment.map((e) => e?.name).filter(Boolean)
           : [],
-      dive_center: data?.dive_center_name || "",
+      dive_center: data?.dive_center || data?.dive_center_name || "",
       memo: data?.memo || "",
       location: data?.location || "",
       feeling: data?.feeling || "",
@@ -82,7 +81,6 @@ function LogDetailPage() {
       certification_number: data?.certification_number || "",
     });
 
-  // 데이터 로드
   useEffect(() => {
     let alive = true;
     (async () => {
@@ -90,16 +88,13 @@ function LogDetailPage() {
         setLoadError(null);
         const result = await logService.getLogById(id);
         if (!alive) return;
-
         setLog({
           ...result,
           likes_count: result?.likes_count ?? 0,
           liked_by_current_user: result?.liked_by_current_user ?? false,
-          is_published: result?.is_published ?? false, // 서버에서 내려주는 값 가정
+          is_published: result?.is_published ?? false,
         });
-
         fillFormFrom(result);
-
         if (result?.dive_image) {
           const isFullURL = result.dive_image.startsWith("http");
           setImagePreview(isFullURL ? result.dive_image : `${BASE_URL}${result.dive_image}`);
@@ -119,12 +114,10 @@ function LogDetailPage() {
 
   const isOwner = String(currentUser?.id) === String(log?.user);
 
-  // Back 동작: 편집 중이면 원상복구, 아니면 페이지 뒤로
   const handleBack = () => {
     if (isEditing) {
-      fillFormFrom(log); // 편집 전 값 복원
+      fillFormFrom(log);
       setSelectedImageFile(null);
-      // 기존 프리뷰 유지(저장 전이므로 서버 반영 안 됨)
       setIsEditing(false);
     } else {
       navigate(-1);
@@ -145,9 +138,7 @@ function LogDetailPage() {
         liked_by_current_user: !prev.liked_by_current_user,
         likes_count: res?.data?.likes_count ?? prev.likes_count,
       }));
-    } catch (err) {
-      console.error("Failed to toggle like", err);
-    }
+    } catch {}
   };
 
   const handleChange = (field) => (e) => {
@@ -155,7 +146,6 @@ function LogDetailPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  // 이미지 선택
   const handleImageChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -165,29 +155,22 @@ function LogDetailPage() {
     }
   };
 
-  // 저장
   const handleSubmit = async () => {
     try {
       const formData = new FormData();
-
       if (Array.isArray(form.equipment)) {
         form.equipment.forEach((eq) => formData.append("equipment", eq));
       }
-
       Object.entries(form).forEach(([key, value]) => {
         if (key === "equipment") return;
         if (value !== null && value !== "") {
           formData.append(key, value);
         }
       });
-
-      // 이미지 업로드 포함
       if (selectedImageFile) {
         formData.append("dive_image", selectedImageFile);
       }
-
       await logService.updateLog(log.id, formData);
-
       setIsEditing(false);
       const updated = await logService.getLogById(id);
       setLog({
@@ -196,7 +179,6 @@ function LogDetailPage() {
         liked_by_current_user: updated?.liked_by_current_user ?? false,
         is_published: updated?.is_published ?? false,
       });
-
       if (updated?.dive_image) {
         const isFullURL = updated.dive_image.startsWith("http");
         setImagePreview(isFullURL ? updated.dive_image : `${BASE_URL}${updated.dive_image}`);
@@ -206,26 +188,6 @@ function LogDetailPage() {
       setSelectedImageFile(null);
     } catch (err) {
       alert("Update failed: " + (err?.response?.data?.detail || err?.message));
-    }
-  };
-
-  // 게시하기
-  const handlePublish = async () => {
-    // 사진 필수 검증: 새로 선택한 파일 또는 기존 이미지 프리뷰가 있어야 함
-    const hasPhoto = !!selectedImageFile || !!imagePreview;
-    if (!hasPhoto) {
-      alert("사진이 필요합니다. 사진을 추가한 후 게시해주세요.");
-      setIsEditing(true);
-      // 사진 입력 포커스
-      setTimeout(() => fileInputRef.current?.focus?.(), 0);
-      return;
-    }
-    try {
-      const res = await api.post(`/logbooks/${log.id}/publish/`);
-      setLog((prev) => ({ ...prev, is_published: res?.data?.is_published ?? true }));
-      alert("게시가 완료되었습니다.");
-    } catch (err) {
-      alert("게시 실패: " + (err?.response?.data?.detail || err?.message));
     }
   };
 
@@ -275,7 +237,6 @@ function LogDetailPage() {
   return (
     <Layout>
       <div className="max-w-6xl mx-auto px-6 py-8 font-sans text-gray-900">
-        {/* 헤더 */}
         <div className="flex items-center justify-between gap-3 mb-5">
           <div className="min-w-0">
             <h1 className="text-[22px] font-bold truncate">{log?.dive_title || "Dive Log"}</h1>
@@ -284,30 +245,14 @@ function LogDetailPage() {
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
+            <WordPressLoginButton />
+            {isOwner && !isEditing && <WordPressPublishButton logbookId={Number(id)} />}
             <button
               onClick={handleBack}
               className="px-3 py-1.5 text-xs border rounded-md text-gray-700 hover:bg-gray-50"
             >
               Back
             </button>
-
-            {/* Publish 버튼: 소유자 & 미게시 상태에서만 */}
-            {isOwner && !log?.is_published && !isEditing && (
-              <button
-                onClick={handlePublish}
-                className="px-3 py-1.5 text-xs rounded-md bg-emerald-600 text-white hover:bg-emerald-700"
-              >
-                Publish
-              </button>
-            )}
-
-            {/* 게시 완료 배지 */}
-            {log?.is_published && (
-              <span className="px-2 py-1 text-[11px] rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                Published
-              </span>
-            )}
-
             <button
               onClick={handleLike}
               className={`px-3 py-1.5 text-xs rounded-md font-semibold ${
@@ -318,7 +263,6 @@ function LogDetailPage() {
             >
               {log?.liked_by_current_user ? "Liked" : "Like"} {log?.likes_count ?? 0}
             </button>
-
             {isOwner && !isEditing && (
               <>
                 <button
@@ -343,12 +287,9 @@ function LogDetailPage() {
           </div>
         </div>
 
-        {/* 균형 맞춘 2열 */}
         <div className="grid grid-cols-2 gap-8 items-stretch">
-          {/* 좌: Diver's ID */}
           <section className="bg-white rounded-2xl shadow p-6 h-full flex flex-col">
             <h2 className="text-[17px] font-bold text-gray-800 mb-3">Diver&apos;s ID</h2>
-
             {imagePreview ? (
               <img
                 src={imagePreview}
@@ -360,7 +301,6 @@ function LogDetailPage() {
                 No Photo
               </div>
             )}
-
             <div className="space-y-2">
               <div className="flex">
                 <div className="w-28 text-xs text-gray-500">Diver</div>
@@ -393,11 +333,9 @@ function LogDetailPage() {
                 </div>
               </div>
             </div>
-
             <div className="mt-auto" />
           </section>
 
-          {/* 우: LOG ENTRY */}
           <section className="bg-white rounded-2xl shadow p-6 h-full flex flex-col">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-[17px] font-bold text-gray-800">LOG ENTRY</h2>
@@ -413,7 +351,6 @@ function LogDetailPage() {
                     <MetricCard label="Dive Time" value={form?.bottom_time || "—"} />
                   </div>
 
-                  {/* 사진 업로드 필드 추가 */}
                   <div className="py-3">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Photo (required for publishing)
