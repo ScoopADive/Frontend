@@ -1,0 +1,23 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>WP OAuth Bridge</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<script>
+  (function () {
+    try {
+      var p = new URLSearchParams(window.location.search);
+      var code = p.get('code') || '';
+      var state = p.get('state') || '';
+      if (window.opener && code) {
+        window.opener.postMessage({ type: 'WP_CODE', code: code, state: state }, window.location.origin);
+      }
+    } catch (e) {}
+    setTimeout(function(){ window.close(); }, 300);
+  })();
+</script>
+</body>
+</html>

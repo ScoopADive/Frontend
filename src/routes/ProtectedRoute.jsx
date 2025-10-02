@@ -1,13 +1,15 @@
+// src/routes/ProtectedRoute.jsx
 import PropTypes from "prop-types";
 import { Navigate, useLocation } from "react-router-dom";
+import { isTokenExpired, STORAGE_KEYS } from "../api/axios";
 
 const ProtectedRoute = ({ children }) => {
   const location = useLocation();
   const token = typeof window !== "undefined"
-    ? localStorage.getItem("access_token")
+    ? localStorage.getItem(STORAGE_KEYS.ACCESS)
     : null;
 
-  if (!token) {
+  if (!token || isTokenExpired(token, 0)) {
     return <Navigate to="/signin" replace state={{ from: location }} />;
   }
 

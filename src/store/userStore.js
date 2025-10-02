@@ -1,12 +1,6 @@
+// src/store/userStore.js
 import { create } from 'zustand';
-
-const STORAGE_KEYS = {
-  ACCESS: 'access_token',
-  REFRESH: 'refresh_token',
-  EMAIL: 'email',
-  NAME: 'name',
-  ID: 'id',
-};
+import { STORAGE_KEYS, registerSession, clearSession } from '../api/axios';
 
 const useUserStore = create((set, get) => ({
   user: null,
@@ -21,6 +15,8 @@ const useUserStore = create((set, get) => ({
     const access = localStorage.getItem(STORAGE_KEYS.ACCESS);
     const refresh = localStorage.getItem(STORAGE_KEYS.REFRESH);
     const isAuthed = Boolean(access && refresh);
+    // 앱을 새로 열었을 때도 사전 리프레시 타이머 세팅
+    if (isAuthed) registerSession({ access, refresh });
     set({
       user: isAuthed ? { id, email, name } : null,
       isAuthenticated: isAuthed,
@@ -45,6 +41,8 @@ const useUserStore = create((set, get) => ({
     if (user?.id != null) {
       localStorage.setItem(STORAGE_KEYS.ID, String(user.id));
     }
+    // 세션 타이머 등록
+    registerSession({ access, refresh });
     set({ user: user || null, isAuthenticated: !!user });
   },
 
@@ -52,6 +50,7 @@ const useUserStore = create((set, get) => ({
     try {
       Object.values(STORAGE_KEYS).forEach((k) => localStorage.removeItem(k));
     } catch {}
+    clearSession(); // 타이머 정지 및 탭 동기화
     set({ user: null, isAuthenticated: false, loading: false, error: null });
   },
 

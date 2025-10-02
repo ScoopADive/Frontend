@@ -1,17 +1,15 @@
 // src/routes/PrivateRoute.jsx
-// 설명: 프로젝트에 ProtectedRoute가 있으면 이 파일은 쓰지 않아도 된다.
-// 만약 사용한다면 ProtectedRoute와 동일한 정책을 유지한다.
-
 import PropTypes from "prop-types";
 import { Navigate, useLocation } from "react-router-dom";
+import { isTokenExpired, STORAGE_KEYS } from "../api/axios";
 
 const PrivateRoute = ({ children }) => {
   const location = useLocation();
   const token = typeof window !== "undefined"
-    ? localStorage.getItem("access_token")
+    ? localStorage.getItem(STORAGE_KEYS.ACCESS)
     : null;
 
-  if (!token) {
+  if (!token || isTokenExpired(token, 0)) {
     return <Navigate to="/signin" replace state={{ from: location }} />;
   }
   return children;

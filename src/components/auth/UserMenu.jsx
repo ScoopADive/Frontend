@@ -1,4 +1,4 @@
-// src/components/auth/UserMenu.jsx
+// src/components/layout/UserMenu.jsx
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useUserStore from "../../store/userStore";

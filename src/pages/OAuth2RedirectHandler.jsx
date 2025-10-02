@@ -1,14 +1,8 @@
+// src/pages/OAuth2RedirectHandler.jsx
 import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useUserStore from '../store/userStore';
-
-const STORAGE_KEYS = {
-  ACCESS: 'access_token',
-  REFRESH: 'refresh_token',
-  EMAIL: 'email',
-  NAME: 'name',
-  ID: 'id',
-};
+import { STORAGE_KEYS, registerSession } from '../api/axios';
 
 const OAuth2RedirectHandler = () => {
   const location = useLocation();
@@ -31,6 +25,9 @@ const OAuth2RedirectHandler = () => {
         if (name) localStorage.setItem(STORAGE_KEYS.NAME, name);
         localStorage.setItem(STORAGE_KEYS.ID, id.toString());
       } catch {}
+
+      // 세션 등록(사전 리프레시 타이머 포함)
+      registerSession({ access, refresh });
 
       setUser({ id: id.toString(), email, name: name || '' });
       navigate('/mypage');
