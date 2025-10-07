@@ -15,16 +15,12 @@ import PropTypes from "prop-types";
 import logService from "../services/logService";
 import bucketService from "../services/bucketService";
 import userService from "../services/userService";
-
-// keep: limited message composer only
 import MessageComposer from "../components/messages/MessageComposer";
+import { Waves, Anchor, Clock, Globe, User as UserIcon, Award, Edit3 } from "lucide-react";
 
-/* -------------------------------------------------------
-   Dropdown options sent as-is to the server
-------------------------------------------------------- */
 const COUNTRY_OPTIONS = [
   { label: "Select country", value: "" },
-  { label: "Korea (Republic of)", value: "Korea" },
+  { label: "Korea (Republic of)", value: "Korea (Republic of)" },
   { label: "Japan", value: "Japan" },
   { label: "United States", value: "United States" },
   { label: "Australia", value: "Australia" },
@@ -32,7 +28,7 @@ const COUNTRY_OPTIONS = [
   { label: "Philippines", value: "Philippines" },
   { label: "Malaysia", value: "Malaysia" },
   { label: "Vietnam", value: "Vietnam" },
-  { label: "Thailand", value: "Thailand" },
+  { label: "Thailand", value: "Thailand" }
 ];
 
 const LICENSE_OPTIONS = [
@@ -43,12 +39,26 @@ const LICENSE_OPTIONS = [
   { label: "PADI Adventure Diver", value: "PADI Adventure Diver" },
   { label: "PADI Rescue Diver", value: "PADI Rescue Diver" },
   { label: "Emergency First Response (EFR)", value: "Emergency First Response (EFR)" },
-  { label: "PADI Deep Diver", value: "PADI Deep Diver" },
-  { label: "PADI Night Diver", value: "PADI Night Diver" },
-  { label: "PADI Wreck Diver", value: "PADI Wreck Diver" },
+  { label: "PADI Master Scuba Diver", value: "PADI Master Scuba Diver" },
+  { label: "Deep Diver", value: "Deep Diver" },
+  { label: "Night Diver", value: "Night Diver" },
+  { label: "Wreck Diver", value: "Wreck Diver" },
+  { label: "Underwater Navigation", value: "Underwater Navigation" },
   { label: "Peak Performance Buoyancy", value: "Peak Performance Buoyancy" },
   { label: "Enriched Air Diver (Nitrox)", value: "Enriched Air Diver (Nitrox)" },
-  { label: "PADI Digital Underwater Photographer", value: "PADI Digital Underwater Photographer" },
+  { label: "Dry Suit Diver", value: "Dry Suit Diver" },
+  { label: "Search and Recovery Diver", value: "Search and Recovery Diver" },
+  { label: "Drift Diver", value: "Drift Diver" },
+  { label: "Altitude Diver", value: "Altitude Diver" },
+  { label: "Boat Diver", value: "Boat Diver" },
+  { label: "Sidemount Diver", value: "Sidemount Diver" },
+  { label: "Digital Underwater Photographer", value: "Digital Underwater Photographer" },
+  { label: "Underwater Naturalist", value: "Underwater Naturalist" },
+  { label: "Multilevel Diver", value: "Multilevel Diver" },
+  { label: "Fish Identification", value: "Fish Identification" },
+  { label: "Ice Diver", value: "Ice Diver" },
+  { label: "Cavern Diver", value: "Cavern Diver" },
+  { label: "Self-Reliant Diver (for experienced divers)", value: "Self-Reliant Diver (for experienced divers)" },
   { label: "PADI Divemaster", value: "PADI Divemaster" },
   { label: "PADI Assistant Instructor", value: "PADI Assistant Instructor" },
   { label: "PADI Open Water Scuba Instructor (OWSI)", value: "PADI Open Water Scuba Instructor (OWSI)" },
@@ -65,7 +75,7 @@ const LICENSE_OPTIONS = [
   { label: "Tec Sidemount Diver", value: "Tec Sidemount Diver" },
   { label: "Tec Gas Blender", value: "Tec Gas Blender" },
   { label: "PADI Rebreather Diver", value: "PADI Rebreather Diver" },
-  { label: "Advanced Rebreather Diver", value: "Advanced Rebreather Diver" },
+  { label: "Advanced Rebreather Diver", value: "Advanced Rebreather Diver" }
 ];
 
 function MyPage({ isOwnPage = true }) {
@@ -83,18 +93,18 @@ function MyPage({ isOwnPage = true }) {
   const [logs, setLogs] = useState([]);
   const [spots, setSpots] = useState([]);
   const [mapCenter, setMapCenter] = useState([20, 100]);
+  const [loading, setLoading] = useState(true);
   const fileInputRef = useRef(null);
   const selectedFileRef = useRef(null);
+  const [errors, setErrors] = useState({});
 
-  // demo friends list
   const friends = [
     { id: 11, username: "Suzy", displayName: "Suzy" },
     { id: 12, username: "Mina", displayName: "Mina" },
     { id: 13, username: "Jisoo", displayName: "Jisoo" },
-    { id: 14, username: "Luca", displayName: "Luca" },
+    { id: 14, username: "Luca", displayName: "Luca" }
   ];
 
-  // message composer state
   const [composerOpen, setComposerOpen] = useState(false);
   const [composerReceiver, setComposerReceiver] = useState(null);
 
@@ -175,6 +185,7 @@ function MyPage({ isOwnPage = true }) {
   };
 
   const hydrateFromServer = async () => {
+    setLoading(true);
     try {
       const data = await userService.getMyProfile();
       const profile = Array.isArray(data) ? data[0] : data;
@@ -184,10 +195,10 @@ function MyPage({ isOwnPage = true }) {
         username: profile?.username ?? storeUser?.name ?? storeUser?.username ?? "",
         email: profile?.email ?? storeUser?.email ?? "",
         country: profile?.country ?? "",
-        license: profile?.license ?? "Open Water Diver",
+        license: profile?.license ?? "",
         introduction: profile?.introduction ?? "",
         profile_image_url: profile?.profile_image ?? storeUser?.profile_image ?? "https://via.placeholder.com/100",
-        specialties: profile?.specialties ?? [],
+        specialties: profile?.specialties ?? []
       };
       setUser(mapped);
       updateUser({
@@ -197,7 +208,7 @@ function MyPage({ isOwnPage = true }) {
         country: mapped.country,
         profile_image: mapped.profile_image_url,
         username: mapped.username,
-        specialties: mapped.specialties,
+        specialties: mapped.specialties
       });
     } catch {
       const fallback = {
@@ -205,13 +216,15 @@ function MyPage({ isOwnPage = true }) {
         username: storeUser?.name || storeUser?.username || "",
         email: storeUser?.email || "",
         country: storeUser?.country || "",
-        license: "Open Water Diver",
+        license: "",
         introduction: "",
         profile_image_url: storeUser?.profile_image || "https://via.placeholder.com/100",
-        specialties: [],
+        specialties: []
       };
       setUser(fallback);
       setProfileId(null);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -243,32 +256,45 @@ function MyPage({ isOwnPage = true }) {
 
   const handleChange = (field) => (e) => {
     setUser((prev) => ({ ...prev, [field]: e.target.value }));
+    setErrors((prev) => ({ ...prev, [field]: null }));
+  };
+
+  const validate = () => {
+    const e = {};
+    const uname = (user.username || "").trim();
+    const email = (user.email || "").trim();
+    const country = (user.country || "");
+    const license = (user.license || "");
+    if (uname.length < 3) e.username = "Username must be at least 3 characters.";
+    if (email.length < 4 || email.length > 30) e.email = "Email length must be 4-30.";
+    if (country && country.length > 20) e.country = "Country must be ≤ 20 characters.";
+    if (license && !LICENSE_OPTIONS.some(o => o.value === license)) e.license = "Invalid license value.";
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
   const handleSaveProfile = async () => {
+    if (!profileId) {
+      alert("Profile is not ready. Try again.");
+      return;
+    }
+    if (!validate()) return;
     try {
-      if (!profileId) {
-        alert("Profile is not ready. Try again.");
-        return;
-      }
-      if (!user?.username || !user?.email) {
-        alert("Username and email are required.");
-        return;
-      }
       const payload = {
-        username: user.username,
-        email: user.email,
+        username: user.username.trim(),
+        email: user.email.trim(),
         country: user.country || undefined,
         license: user.license || undefined,
-        introduction: user.introduction || undefined,
-        profile_image: selectedFileRef.current || undefined,
+        introduction: user.introduction?.trim() || undefined,
+        profile_image: selectedFileRef.current || undefined
       };
       await userService.updateProfile(profileId, payload);
+      selectedFileRef.current = null;
       await hydrateFromServer();
       setIsEditing(false);
       alert("Profile saved successfully.");
-    } catch {
-      alert("Failed to save profile.");
+    } catch (err) {
+      alert(typeof err === "object" ? JSON.stringify(err, null, 2) : String(err));
     }
   };
 
@@ -301,29 +327,17 @@ function MyPage({ isOwnPage = true }) {
     reader.readAsDataURL(file);
   };
 
-  // message: open composer from a friend card
   const openComposerFor = (friend) => {
     setComposerReceiver(friend);
     setComposerOpen(true);
   };
 
-  // message: open composer for the profile owner
   const openComposerForProfileUser = () => {
     if (!user) return;
     openComposerFor({ id: user.id, username: user.username, displayName: user.username });
   };
 
-  if (user === "not-found") {
-    return (
-      <Layout>
-        <div className="text-center text-red-500 mt-10 text-lg">
-          User not found.
-        </div>
-      </Layout>
-    );
-  }
-
-  if (!user) {
+  if (loading) {
     return (
       <Layout>
         <div className="text-center mt-10 text-gray-500">Loading...</div>
@@ -331,129 +345,188 @@ function MyPage({ isOwnPage = true }) {
     );
   }
 
+  const totalDives = logs?.length || 0;
+  const maxDepth = Math.max(0, ...logs.map((l) => Number(getField(l, ["max_depth"])) || 0));
+  const totalTime = logs.reduce((acc, l) => acc + (Number(getField(l, ["bottom_time"])) || 0), 0);
+  const uniqueCountries = new Set(logs.map((l) => l.country).filter(Boolean)).size;
+
+  const metricStats = [
+    { label: "Total Dives", value: totalDives, Icon: Waves },
+    { label: "Max Depth", value: `${maxDepth}m`, Icon: Anchor },
+    { label: "Total Time", value: `${Math.round(totalTime)}h`, Icon: Clock },
+    { label: "Countries", value: uniqueCountries, Icon: Globe }
+  ];
+
   return (
     <Layout>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        {metricStats.map(({ label, value, Icon }) => (
+          <MetricTile key={label} label={label} value={value} Icon={Icon} />
+        ))}
+      </div>
+
       <div className="flex flex-col lg:flex-row gap-8 justify-center items-start">
         <div className="w-full lg:w-[320px] space-y-6">
-          <div className="bg-white p-6 rounded-xl shadow-md space-y-4 text-center">
-            <img
-              src={user.profile_image_url}
-              alt="Profile"
-              className="w-24 h-24 mx-auto rounded-full object-cover"
-            />
-            {isOwnPage && isEditing ? (
-              <>
-                <div className="flex flex-col items-center space-y-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    ref={fileInputRef}
-                    className="hidden"
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-sm text-blue-600 hover:underline"
-                  >
-                    Change Photo
-                  </button>
+          {/* Profile Card */}
+          <div className="rounded-xl border border-slate-200 shadow-[0_4px_16px_rgba(15,23,42,0.06)] bg-gradient-to-br from-[#eef1f5] via-[#eef2f7] to-[#e7efff]">
+            <div className="p-6">
+              <div className="flex items-center gap-2 text-slate-800">
+                <UserIcon className="w-5 h-5" />
+                <span className="font-semibold">Profile</span>
+              </div>
+
+              <div className="mt-4 flex flex-col items-center">
+                <div className="relative w-24 h-24 rounded-full overflow-hidden ring-4 ring-white/70 border-2 border-white shadow">
+                  <img src={user.profile_image_url} alt="Profile" className="w-full h-full object-cover" />
+                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-400 rounded-full border-2 border-white flex items-center justify-center">
+                    <div className="w-1.5 h-1.5 bg-white rounded-full" />
+                  </div>
                 </div>
+              </div>
 
-                <input
-                  className="border p-2 w-full rounded"
-                  placeholder="Enter username"
-                  value={user.username}
-                  onChange={handleChange("username")}
-                />
-                <input
-                  className="border p-2 w-full rounded"
-                  placeholder="Enter email"
-                  value={user.email}
-                  onChange={handleChange("email")}
-                />
+              <div className="mt-3 text-center">
+                <h2 className="text-xl font-extrabold text-slate-900">{user.username}</h2>
+                <p className="text-sm text-slate-600">{user.email}</p>
+              </div>
 
-                <select
-                  className="border p-2 w-full rounded bg-white"
-                  value={user.country ?? ""}
-                  onChange={handleChange("country")}
-                >
-                  {COUNTRY_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  className="border p-2 w-full rounded bg-white"
-                  value={user.license ?? ""}
-                  onChange={handleChange("license")}
-                >
-                  {LICENSE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-
-                <textarea
-                  className="border p-2 w-full rounded"
-                  placeholder="Enter introduction"
-                  value={user.introduction}
-                  onChange={handleChange("introduction")}
-                />
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleSaveProfile}
-                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
-                  >
-                    Save
-                  </button>
-                  <button
-                    onClick={handleCancelEdit}
-                    className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-4 rounded"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <h2 className="text-xl font-semibold text-gray-800">
-                  {user.username}
-                </h2>
-                <p className="text-sm text-gray-500">{user.email}</p>
-                <p className="text-sm">
-                  <strong>Country:</strong> {user.country || "-"}
+              {!isEditing && (
+                <p className="mt-3 text-[13px] leading-5 text-slate-600 text-center">
+                  {user.introduction?.trim()
+                    ? user.introduction
+                    : "Passionate diver exploring Asia's beautiful underwater world. Love photographing marine life and discovering new dive sites."}
                 </p>
-                <p className="text-sm">
-                  <strong>License:</strong> {user.license || "-"}
-                </p>
-                <p className="text-gray-600">{user.introduction}</p>
+              )}
+
+              {/* Info boxes (icon small and next to label, lighter background) */}
+              <div className="mt-4 space-y-2">
+                {!isEditing ? (
+                  <>
+                    <div className="rounded-lg border border-slate-200 bg-white/60 backdrop-blur-sm px-3 py-2">
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                        <Globe className="w-3.5 h-3.5 shrink-0" />
+                        <span>Country</span>
+                      </div>
+                      <div className="mt-0.5 text-sm font-medium text-slate-800">{user.country || "-"}</div>
+                    </div>
+
+                    <div className="rounded-lg border border-slate-200 bg-white/60 backdrop-blur-sm px-3 py-2">
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
+                        <Award className="w-3.5 h-3.5 shrink-0" />
+                        <span>License</span>
+                      </div>
+                      <div className="mt-0.5 text-sm font-medium text-slate-800">{user.license || "-"}</div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="text-sm text-blue-600 hover:underline"
+                      >
+                        Change Photo
+                      </button>
+                      <input type="file" ref={fileInputRef} accept="image/*" onChange={handleImageUpload} className="hidden" />
+                    </div>
+
+                    <input
+                      className="border p-2 w-full rounded bg-white/90"
+                      placeholder="Enter username"
+                      value={user.username}
+                      onChange={handleChange("username")}
+                    />
+                    {errors.username && <p className="text-xs text-red-500 -mt-1 mb-1">{errors.username}</p>}
+
+                    <input
+                      className="border p-2 w-full rounded bg-white/90"
+                      placeholder="Enter email"
+                      value={user.email}
+                      onChange={handleChange("email")}
+                    />
+                    {errors.email && <p className="text-xs text-red-500 -mt-1 mb-1">{errors.email}</p>}
+
+                    <select
+                      className="border p-2 w-full rounded bg-white"
+                      value={user.country ?? ""}
+                      onChange={handleChange("country")}
+                    >
+                      {COUNTRY_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.country && <p className="text-xs text-red-500 -mt-1 mb-1">{errors.country}</p>}
+
+                    <select
+                      className="border p-2 w-full rounded bg-white"
+                      value={user.license ?? ""}
+                      onChange={handleChange("license")}
+                    >
+                      {LICENSE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.license && <p className="text-xs text-red-500 -mt-1 mb-1">{errors.license}</p>}
+
+                    <textarea
+                      className="border p-2 w-full rounded bg-white/90"
+                      placeholder="Enter introduction"
+                      value={user.introduction}
+                      onChange={handleChange("introduction")}
+                    />
+                  </>
+                )}
+              </div>
+
+              <div className="mt-4">
                 {isOwnPage ? (
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="mt-2 w-full bg-gray-300 hover:bg-gray-400 text-gray-800 font-medium py-2 px-4 rounded"
-                  >
-                    Edit Profile
-                  </button>
+                  isEditing ? (
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={handleSaveProfile}
+                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded"
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelEdit}
+                        className="flex-1 bg-gray-200 hover:bg-gray-300 text-slate-800 font-semibold py-2 px-4 rounded"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsEditing(true)}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 text-white px-3 py-2 text-sm font-semibold hover:bg-slate-800"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                      Edit Profile
+                    </button>
+                  )
                 ) : (
                   <button
+                    type="button"
                     onClick={openComposerForProfileUser}
-                    className="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded"
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-800 hover:bg-slate-50"
                   >
                     Send Message
                   </button>
                 )}
-              </>
-            )}
+              </div>
+            </div>
           </div>
 
+          {/* Bucket List */}
           <div className="bg-white p-4 rounded-xl shadow-md">
-            <h3 className="text-lg font-semibold mb-2 text-gray-800">
-              Bucket List
-            </h3>
+            <h3 className="text-lg font-semibold mb-2 text-gray-800">Bucket List</h3>
             {bucketList.length === 0 ? (
               <p className="text-gray-500">No items added yet.</p>
             ) : (
@@ -476,12 +549,14 @@ function MyPage({ isOwnPage = true }) {
                     />
                     <div className="flex gap-2">
                       <button
+                        type="button"
                         onClick={handleAddBucket}
                         className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded font-semibold"
                       >
                         Add
                       </button>
                       <button
+                        type="button"
                         onClick={() => setShowBucketInput(false)}
                         className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded font-semibold"
                       >
@@ -491,6 +566,7 @@ function MyPage({ isOwnPage = true }) {
                   </>
                 ) : (
                   <button
+                    type="button"
                     onClick={() => setShowBucketInput(true)}
                     className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded font-semibold"
                   >
@@ -503,19 +579,15 @@ function MyPage({ isOwnPage = true }) {
 
           {isOwnPage && (
             <div className="bg-white p-4 rounded-xl shadow-md space-y-2">
-              <h3 className="text-lg font-semibold mb-2 text-gray-800">
-                Friends
-              </h3>
+              <h3 className="text-lg font-semibold mb-2 text-gray-800">Friends</h3>
               <ul className="space-y-2">
                 {friends.map((friend) => (
                   <li key={friend.id} className="flex items-center justify-between">
-                    <Link
-                      to={`/user/${friend.username}`}
-                      className="text-blue-600 hover:underline"
-                    >
+                    <Link to={`/user/${friend.username}`} className="text-blue-600 hover:underline">
                       {friend.displayName}
                     </Link>
                     <button
+                      type="button"
                       onClick={() => openComposerFor(friend)}
                       className="text-sm bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-md"
                     >
@@ -525,6 +597,7 @@ function MyPage({ isOwnPage = true }) {
                 ))}
               </ul>
               <button
+                type="button"
                 onClick={() => alert("Friend adding functionality coming soon.")}
                 className="mt-2 w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded font-semibold"
               >
@@ -541,18 +614,14 @@ function MyPage({ isOwnPage = true }) {
               level: user.license,
               specialties: user.specialties,
               logs: logs.length,
-              remainingToMaster: Math.max(0, 50 - logs.length),
+              remainingToMaster: Math.max(0, 50 - logs.length)
             }}
           />
 
           <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">
-              {isOwnPage ? "My" : `${user.username}'s`} Dive Logs
-            </h3>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">{isOwnPage ? "My" : `${user.username}'s`} Dive Logs</h3>
             {logs.length === 0 ? (
-              <div className="w-full bg-gray-50 border border-dashed border-gray-300 rounded-xl p-6 text-center text-gray-600">
-                No logs available.
-              </div>
+              <div className="w-full bg-gray-50 border border-dashed border-gray-300 rounded-xl p-6 text-center text-gray-600">No logs available.</div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {logs.slice(0, 4).map((log) => (
@@ -561,12 +630,7 @@ function MyPage({ isOwnPage = true }) {
               </div>
             )}
             <div className="text-right mt-2">
-              <button
-                onClick={() => navigate("/logs")}
-                className="text-blue-600 hover:underline text-sm"
-              >
-                View All →
-              </button>
+              <button type="button" onClick={() => navigate("/logs")} className="text-blue-600 hover:underline text-sm">View All →</button>
             </div>
           </div>
 
@@ -581,6 +645,7 @@ function MyPage({ isOwnPage = true }) {
 
       {isOwnPage && (
         <button
+          type="button"
           onClick={() => navigate("/log/new")}
           className="fixed bottom-8 right-8 bg-gray-500 hover:bg-gray-400 text-white text-lg font-bold py-3 px-5 rounded-full shadow-lg"
         >
@@ -588,18 +653,29 @@ function MyPage({ isOwnPage = true }) {
         </button>
       )}
 
-      {/* message composer modal */}
-      <MessageComposer
-        isOpen={composerOpen}
-        onClose={() => setComposerOpen(false)}
-        defaultReceiver={composerReceiver}
-      />
+      <MessageComposer isOpen={composerOpen} onClose={() => setComposerOpen(false)} defaultReceiver={composerReceiver} />
     </Layout>
   );
 }
 
+function MetricTile({ label, value, Icon }) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white shadow-sm px-5 py-4 text-center">
+      {Icon && <Icon className="w-4 h-4 text-slate-900 mx-auto mb-0.5" />}
+      <div className="text-xl font-extrabold text-slate-900 leading-tight">{value}</div>
+      <div className="text-[12px] text-slate-600 mt-0.5 leading-tight">{label}</div>
+    </div>
+  );
+}
+
+MetricTile.propTypes = {
+  label: PropTypes.string.isRequired,
+  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+  Icon: PropTypes.elementType
+};
+
 MyPage.propTypes = {
-  isOwnPage: PropTypes.bool,
+  isOwnPage: PropTypes.bool
 };
 
 export default MyPage;
