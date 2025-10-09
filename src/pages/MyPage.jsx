@@ -479,10 +479,11 @@ function MyPage({ isOwnPage = true }) {
               className={`rounded-lg border border-slate-2 00 bg-gradient-to-br from-[#eef1f5] via-[#eef2f7] to-[#e7efff] ${SOFT_SHADOW}`}
             >
               <div className="p-6">
-                <div className="flex items-center gap-2 text-slate-800">
-                  <UserIcon className="w-5 h-5" />
-                  <span className="font-semibold">Profile</span>
+                <div className="flex items-center gap-2">
+                  <UserIcon className="w-4 h-4 text-slate-800" />
+                  <h3 className="text-sm font-semibold text-slate-800">Profile</h3>
                 </div>
+
 
                 <div className="mt-4 flex flex-col items-center">
                   <div className="relative w-24 h-24 rounded-full overflow-hidden ring-4 ring-white/70 border-2 border-white shadow">

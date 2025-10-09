@@ -42,7 +42,7 @@ function SkillCard({ skill }) {
   const allDone = nextSteps.length === 0;
 
   return (
-    <div className="rounded-2xl bg-white pt-[2px] pb-5 px-5 sm:pt-[3px] sm:pb-6 sm:px-6">
+    <div className="rounded-2xl bg-white pt-[4px] pb-[14px] px-5 sm:pt-[5px] sm:pb-[18px] sm:px-6">
       {/* ===== 헤더 ===== */}
       <div className="flex items-center gap-8">
         {/* 원형 게이지 */}
