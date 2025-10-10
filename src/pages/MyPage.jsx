@@ -23,7 +23,7 @@ import {
   Award,
   Edit3,
   Calendar,
-  Heart,
+  MessageSquare,
 } from "lucide-react";
 
 const COUNTRY_OPTIONS = [
@@ -126,7 +126,6 @@ function MyPage({ isOwnPage = true }) {
     return undefined;
   };
 
-  // 로그 카드 썸네일 추출
   const getLogThumb = (log) => {
     const url =
       getField(log, ["cover", "thumbnail", "image_url", "photo_url", "image", "photo"]) ||
@@ -415,50 +414,14 @@ function MyPage({ isOwnPage = true }) {
     );
   }
 
-  // 카드 섀도우를 매우 연하게 통일
+  // 공통 스타일 토큰
   const SOFT_SHADOW = "shadow-[0_1px_3px_rgba(2,6,23,0.06),0_0_0_1px_rgba(2,6,23,0.04)]";
   const CARD = `rounded-lg bg-white ${SOFT_SHADOW}`;
   const SECTION_HEAD = "px-6 pt-5 pb-3";
-
-  // 로그 카드: 사진 스타일 형식
-  const LogMiniCard = ({ log }) => {
-    const title =
-      getField(log, ["dive_site", "site", "spot", "location", "title", "dive_title"]) || "Untitled";
-    const date = getField(log, ["date", "dive_date", "logged_at"]) || "-";
-    const depthVal = getField(log, ["max_depth", "depth"]);
-    const minutesVal = getField(log, ["bottom_time", "dive_time", "duration"]);
-
-    return (
-      <div className={`rounded-xl border border-slate-200 bg-white overflow-hidden ${SOFT_SHADOW}`}>
-        <div className="relative h-32">
-          <img src={getLogThumb(log)} alt={String(title)} className="w-full h-full object-cover" />
-          <div className="absolute top-2 right-3 flex gap-1">
-            {[...Array(5)].map((_, i) => (
-              <Heart key={i} className="w-4 h-4 text-red-500" />
-            ))}
-          </div>
-        </div>
-        <div className="p-3">
-          <div className="text-slate-900 font-semibold tracking-tight">{String(title)}</div>
-          <div className="mt-2 space-y-1 text-sm text-slate-600">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4 shrink-0 text-slate-700" />
-              <span>{String(date)}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Anchor className="w-4 h-4 shrink-0 text-slate-700" />
-              <span>{depthVal ? `${depthVal}m deep` : "-"}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4 shrink-0 text-slate-700" />
-              <span>{minutesVal ? `${minutesVal} minutes` : "-"}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-  LogMiniCard.propTypes = { log: PropTypes.object.isRequired };
+  // 라이트 톤 버튼(기본 연한색 → hover 더 진하게)
+  const BTN_LIGHT_BASE =
+    "rounded-lg bg-slate-200 text-slate-900 px-3 py-2 text-sm font-semibold transition-colors";
+  const BTN_LIGHT = `${BTN_LIGHT_BASE} hover:bg-slate-400`;
 
   return (
     <Layout>
@@ -475,15 +438,12 @@ function MyPage({ isOwnPage = true }) {
           {/* 좌측 칼럼 */}
           <div className="w-full lg:w-[320px] space-y-6">
             {/* 프로필 카드 */}
-            <div
-              className={`rounded-lg border border-slate-2 00 bg-gradient-to-br from-[#eef1f5] via-[#eef2f7] to-[#e7efff] ${SOFT_SHADOW}`}
-            >
+            <div className={`rounded-lg border border-slate-200 bg-gradient-to-br from-[#eef1f5] via-[#eef2f7] to-[#e7efff] ${SOFT_SHADOW}`}>
               <div className="p-6">
                 <div className="flex items-center gap-2">
                   <UserIcon className="w-4 h-4 text-slate-800" />
                   <h3 className="text-sm font-semibold text-slate-800">Profile</h3>
                 </div>
-
 
                 <div className="mt-4 flex flex-col items-center">
                   <div className="relative w-24 h-24 rounded-full overflow-hidden ring-4 ring-white/70 border-2 border-white shadow">
@@ -510,9 +470,7 @@ function MyPage({ isOwnPage = true }) {
                 <div className="mt-4 space-y-2">
                   {!isEditing ? (
                     <>
-                      <div
-                        className={`rounded-lg border border-slate-200 bg-white/60 backdrop-blur-sm px-3 py-2 ${SOFT_SHADOW}`}
-                      >
+                      <div className={`rounded-lg border border-slate-200 bg-white/60 backdrop-blur-sm px-3 py-2 ${SOFT_SHADOW}`}>
                         <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
                           <Globe className="w-3.5 h-3.5 shrink-0" />
                           <span>Country</span>
@@ -522,9 +480,7 @@ function MyPage({ isOwnPage = true }) {
                         </div>
                       </div>
 
-                      <div
-                        className={`rounded-lg border border-slate-200 bg-white/60 backdrop-blur-sm px-3 py-2 ${SOFT_SHADOW}`}
-                      >
+                      <div className={`rounded-lg border border-slate-200 bg-white/60 backdrop-blur-sm px-3 py-2 ${SOFT_SHADOW}`}>
                         <div className="flex items-center gap-1.5 text-[11px] text-slate-500">
                           <Award className="w-3.5 h-3.5 shrink-0" />
                           <span>License</span>
@@ -609,6 +565,7 @@ function MyPage({ isOwnPage = true }) {
                   {isOwnPage ? (
                     isEditing ? (
                       <div className="flex gap-2">
+                        {/* 저장/취소는 Primary 유지 */}
                         <button
                           type="button"
                           onClick={handleSaveProfile}
@@ -625,10 +582,11 @@ function MyPage({ isOwnPage = true }) {
                         </button>
                       </div>
                     ) : (
+                      // ⬇ 모양(폭/패딩/아이콘 정렬)은 유지, 색만 라이트 → hover 진하게
                       <button
                         type="button"
                         onClick={() => setIsEditing(true)}
-                        className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-slate-900 text-white px-3 py-2 text-sm font-semibold hover:bg-slate-800"
+                        className={`w-full inline-flex items-center justify-center gap-2 ${BTN_LIGHT}`}
                       >
                         <Edit3 className="w-4 h-4" />
                         Edit Profile
@@ -647,89 +605,99 @@ function MyPage({ isOwnPage = true }) {
               </div>
             </div>
 
-            {/* 버킷 리스트 */}
-            <div className={`bg-white p-4 rounded-lg ${SOFT_SHADOW}`}>
-              <h3 className="text-lg font-semibold mb-2 text-gray-800">Bucket List</h3>
-              {bucketList.length === 0 ? (
-                <p className="text-gray-500">No items added yet.</p>
-              ) : (
-                <ul className="list-disc list-inside text-gray-700 mb-2">
-                  {bucketList.map((item) => (
-                    <li key={item.id ?? item}>{item.title ?? item}</li>
-                  ))}
-                </ul>
-              )}
+            {/* ▼▼ Bucket List: 버튼 톤 통일(라이트 → hover 더 진하게) ▼▼ */}
+            <section className={CARD}>
+              <div className={SECTION_HEAD}>
+                <h3 className="text-sm font-semibold text-slate-800">Bucket List</h3>
+              </div>
+              <div className="px-6 pb-6">
+                {bucketList.length === 0 ? (
+                  <div className="rounded-md bg-slate-50 px-3 py-3 text-slate-500">
+                    No items added yet.
+                  </div>
+                ) : (
+                  <ul className="list-disc list-inside text-slate-700 space-y-1">
+                    {bucketList.map((item) => (
+                      <li key={item.id ?? item}>{item.title ?? item}</li>
+                    ))}
+                  </ul>
+                )}
 
-              {isOwnPage && (
-                <div className="mt-2 space-y-2">
-                  {showBucketInput ? (
-                    <>
-                      <input
-                        className="w-full border rounded p-2"
-                        placeholder="Add new bucket item..."
-                        value={newBucketTitle}
-                        onChange={(e) => setNewBucketTitle(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleAddBucket()}
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={handleAddBucket}
-                          className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded font-semibold"
-                        >
-                          Add
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setShowBucketInput(false)}
-                          className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800 py-2 px-4 rounded font-semibold"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setShowBucketInput(true)}
-                      className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 rounded font-semibold"
-                    >
-                      Add Item
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* 친구 목록 */}
-            {isOwnPage && (
-              <div className={`bg-white p-4 rounded-lg space-y-2 ${SOFT_SHADOW}`}>
-                <h3 className="text-lg font-semibold mb-2 text-gray-800">Friends</h3>
-                <ul className="space-y-2">
-                  {friends.map((friend) => (
-                    <li key={friend.id} className="flex items-center justify-between">
-                      <Link to={`/user/${friend.username}`} className="text-blue-600 hover:underline">
-                        {friend.displayName}
-                      </Link>
+                {isOwnPage && (
+                  <div className="mt-3 space-y-2">
+                    {showBucketInput ? (
+                      <>
+                        <input
+                          className="w-full border border-slate-300 rounded px-3 py-2"
+                          placeholder="Add new bucket item..."
+                          value={newBucketTitle}
+                          onChange={(e) => setNewBucketTitle(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleAddBucket()}
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={handleAddBucket}
+                            className={`${BTN_LIGHT} flex-1`}
+                          >
+                            Add
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setShowBucketInput(false)}
+                            className={`${BTN_LIGHT} flex-1`}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </>
+                    ) : (
                       <button
                         type="button"
-                        onClick={() => openComposerFor(friend)}
-                        className="text-sm bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-md"
+                        onClick={() => setShowBucketInput(true)}
+                        className={`${BTN_LIGHT} w-full`}
                       >
-                        Message
+                        Add Item
                       </button>
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  type="button"
-                  onClick={() => alert("Friend adding functionality coming soon.")}
-                  className="mt-2 w-full bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 rounded font-semibold"
-                >
-                  Add Friend
-                </button>
+                    )}
+                  </div>
+                )}
               </div>
+            </section>
+            {/* ▲▲ Bucket List 끝 ▲▲ */}
+
+            {/* ▼▼ Friends: 메시지 아이콘 버튼, Add Friend 없음 ▼▼ */}
+            {isOwnPage && (
+              <section className={CARD}>
+                <div className={SECTION_HEAD}>
+                  <h3 className="text-sm font-semibold text-slate-800">Friends</h3>
+                </div>
+                <div className="px-6 pb-6">
+                  <ul className="divide-y divide-slate-200">
+                    {friends.map((friend) => (
+                      <li key={friend.id} className="flex items-center justify-between py-2">
+                        <Link
+                          to={`/user/${friend.username}`}
+                          className="text-sm font-medium text-slate-800 hover:underline"
+                        >
+                          {friend.displayName}
+                        </Link>
+                        <button
+                          type="button"
+                          aria-label={`Message ${friend.displayName}`}
+                          onClick={() => openComposerFor(friend)}
+                          className="inline-flex items-center justify-center rounded-md border border-slate-300 bg-white p-1.5 text-slate-800 hover:bg-slate-50"
+                          title="Message"
+                        >
+                          <MessageSquare className="w-4 h-4" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </section>
             )}
+            {/* ▲▲ Friends 끝 ▲▲ */}
           </div>
 
           {/* 중앙 칼럼 */}
@@ -774,10 +742,7 @@ function MyPage({ isOwnPage = true }) {
                           key={log.id || log.uuid || JSON.stringify(log)}
                           className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow"
                         >
-                          {/* 얇은 단색 헤더바 (높이 더 줄임) */}
                           <div className="h-12 bg-gradient-to-r from-sky-100 via-sky-50 to-blue-100" />
-
-                          {/* 본문: 제목 굵게, 장소는 소형 텍스트 */}
                           <div className="p-3">
                             <div className="text-slate-900 font-bold text-[15px] leading-tight">
                               {String(title)}
