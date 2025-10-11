@@ -714,72 +714,49 @@ function MyPage({ isOwnPage = true }) {
               </div>
             </section>
 
-            {/* ▼ 로그 리스트: 섹션 배경 없이 바로 타이틀 + 카드 그리드 */}
-            <div className="px-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-slate-800">My Dive Logs</h3>
-                <button
-                  type="button"
-                  onClick={() => navigate("/logs")}
-                  className="text-blue-600 hover:underline text-sm"
-                >
-                  View All →
-                </button>
-              </div>
-
-              <div className="mt-3">
-                {Array.isArray(logs) && logs.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {logs.slice(0, 3).map((log) => {
-                      const title = getField(log, ["title", "dive_title"]) || "Untitled";
-                      const site = getField(log, ["dive_site", "site", "spot", "location"]) || "-";
-                      const date = getField(log, ["date", "dive_date", "logged_at"]) || "-";
-                      const depth = getField(log, ["max_depth", "depth"]);
-                      const minutes = getField(log, ["bottom_time", "dive_time", "duration"]);
-
-                      return (
-                        <div
-                          key={log.id || log.uuid || JSON.stringify(log)}
-                          className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow"
-                        >
-                          <div className="h-12 bg-gradient-to-r from-sky-100 via-sky-50 to-blue-100" />
-                          <div className="p-3">
-                            <div className="text-slate-900 font-bold text-[15px] leading-tight">
-                              {String(title)}
-                            </div>
-
-                            <div className="mt-1 text-xs text-slate-500 flex items-center gap-1.5">
-                              <Globe className="w-3.5 h-3.5 shrink-0" />
-                              <span className="truncate">{String(site)}</span>
-                            </div>
-
-                            <div className="mt-2 space-y-1 text-sm text-slate-600">
-                              <div className="flex items-center gap-2">
-                                <Calendar className="w-4 h-4 shrink-0 text-slate-700" />
-                                <span>{String(date)}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Anchor className="w-4 h-4 shrink-0 text-slate-700" />
-                                <span>{depth ? `${depth}m deep` : "-"}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Clock className="w-4 h-4 shrink-0 text-slate-700" />
-                                <span>{minutes ? `${minutes} minutes` : "-"}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="rounded-lg bg-slate-50 p-6 text-center text-slate-500 shadow-inner">
-                    No logs yet.
-                  </div>
-                )}
-              </div>
+           {/* ===== Recent Dives (header + up to 3 cards) ===== */}
+          <section className={CARD}>
+            {/* 섹션 헤더 (다른 섹션과 동일 크기/톤) */}
+            <div className={`${SECTION_HEAD} flex items-center justify-between`}>
+              <h3 className="text-sm font-semibold text-slate-800">Recent Dives</h3>
+              <button
+                type="button"
+                onClick={() => navigate("/logs")}
+                className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                View All →
+              </button>
             </div>
-            {/* ▲ 로그 리스트 끝 */}
+
+            {/* 카드 리스트 */}
+            <div className="px-6 pb-6">
+              {Array.isArray(logs) && logs.length > 0 ? (
+                <ul className="space-y-4">
+                  {logs.slice(0, 3).map((log) => {
+                    const normalized = {
+                      id: log.id ?? log.uuid ?? String(Math.random()),
+                      dive_title: (getField(log, ["title", "dive_title"]) || "Untitled Dive"),
+                      dive_site: (getField(log, ["dive_site", "site", "spot", "location"]) || "-"),
+                      dive_date: (getField(log, ["date", "dive_date", "logged_at"]) || ""),
+                      max_depth: getField(log, ["max_depth", "depth"]) ?? "",
+                      bottom_time: getField(log, ["bottom_time", "dive_time", "duration"]) ?? "",
+                    };
+                    return (
+                      <li key={normalized.id}>
+                        <LogCard log={normalized} />
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <div className="rounded-lg bg-slate-50 p-6 text-center text-slate-500 shadow-inner">
+                  No logs yet.
+                </div>
+              )}
+            </div>
+          </section>
+          {/* ===== /Recent Dives ===== */}
+
 
             {/* Dive Depth Trend */}
             <section className={CARD}>
