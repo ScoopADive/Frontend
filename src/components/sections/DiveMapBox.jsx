@@ -1,11 +1,12 @@
+// components/sections/DiveMapBox.jsx
 import PropTypes from "prop-types";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 function DiveMapBox({ spots = [], center = [20, 100], zoom = 2, height = "h-64" }) {
   return (
-    <div className="bg-white rounded-xl shadow-md p-4">
-      <h3 className="text-lg font-semibold mb-2">📍 Dive Spots Map</h3>
+    // 섹션 바탕카드 안에서 제목 없이 맵만 표시
+    <div className="p-0">
       <MapContainer center={center} zoom={zoom} className={`${height} rounded-lg z-0`}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         {spots.map((spot, idx) => (

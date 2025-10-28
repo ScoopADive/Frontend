@@ -1,3 +1,4 @@
+// components/sections/DiveHeatmapBox.jsx
 import React from "react";
 import PropTypes from "prop-types";
 
@@ -28,18 +29,36 @@ function DiveHeatmapBox({ data }) {
   const displayData = data && data.length > 0 ? data : dummyHeatmapData;
 
   return (
-    <div className="bg-white p-4 rounded-xl shadow-md">
-      <h3 className="text-lg font-semibold mb-4 text-gray-800">📅 Dive Frequency Heatmap</h3>
-      <div className="grid grid-cols-6 gap-2">
+    <div className="rounded-2xl bg-white shadow-[0_8px_24px_rgba(15,23,42,0.08)] p-5 sm:p-6">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
         {displayData.map((item, idx) => (
           <div
             key={`${item.month}-${idx}`}
-            className={`flex flex-col items-center justify-center p-2 rounded font-medium text-xs ${getColor(item.count)}`}
+            className={`flex flex-col items-center justify-center px-3 py-2 rounded font-medium text-xs ${getColor(item.count)}`}
           >
             <span>{item.month}</span>
             <span>{item.count}</span>
           </div>
         ))}
+      </div>
+
+      <div className="mt-4 flex items-center gap-3 text-xs text-slate-600">
+        <span className="inline-flex items-center gap-1">
+          <span className="w-3 h-3 inline-block rounded bg-gray-100 shadow-[inset_0_0_0_1px_rgba(148,163,184,0.35)]" />
+          none
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="w-3 h-3 inline-block rounded bg-blue-100" />
+          low
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="w-3 h-3 inline-block rounded bg-blue-300" />
+          medium
+        </span>
+        <span className="inline-flex items-center gap-1">
+          <span className="w-3 h-3 inline-block rounded bg-blue-400" />
+          high
+        </span>
       </div>
     </div>
   );

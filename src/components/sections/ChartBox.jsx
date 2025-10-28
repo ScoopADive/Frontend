@@ -17,32 +17,50 @@ function ChartBox({ logs }) {
       date: dayjs(log.dive_date).format("YYYY-MM-DD"),
       depth: Number(log.max_depth),
     }))
-    .sort((a, b) => new Date(a.date) - new Date(b.date)); // 시간순 정렬
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
 
-  const chartData = transformed.length > 0
-    ? transformed
-    : [
-        { date: "2025-06-01", depth: 18 },
-        { date: "2025-06-10", depth: 22 },
-        { date: "2025-06-18", depth: 15 },
-        { date: "2025-06-25", depth: 28 },
-      ];
+  const chartData =
+    transformed.length > 0
+      ? transformed
+      : [
+          { date: "2025-06-01", depth: 18 },
+          { date: "2025-06-10", depth: 22 },
+          { date: "2025-06-18", depth: 15 },
+          { date: "2025-06-25", depth: 28 },
+        ];
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-md">
-      <h2 className="text-lg font-semibold mb-2">📉 Dive Depth Trend</h2>
-      <ResponsiveContainer width="100%" height={200}>
-        <LineChart data={chartData}>
+    <div className="rounded-2xl bg-white shadow-[0_4px_16px_rgba(15,23,42,0.06)] p-4 sm:p-5">
+      <ResponsiveContainer width="100%" height={240}>
+        <LineChart
+          data={chartData}
+          margin={{
+            top: 20,
+            right: 20,
+            left: 0,
+            bottom: 10,
+          }}
+        >
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="date" />
-          <YAxis domain={[0, 40]} />
+          <XAxis
+            dataKey="date"
+            tick={{ fontSize: 12 }}
+            interval="preserveEnd"
+            padding={{ left: 10, right: 10 }}
+          />
+          <YAxis
+            domain={[0, 40]}
+            tick={{ fontSize: 12 }}
+            tickFormatter={(v) => `${v} m`}
+          />
           <Tooltip />
           <Line
             type="monotone"
             dataKey="depth"
             stroke="#3b82f6"
-            strokeWidth={2}
-            dot={{ r: 3 }}
+            strokeWidth={2.2}
+            dot={{ r: 2.8 }}
+            activeDot={{ r: 4.2 }}
           />
         </LineChart>
       </ResponsiveContainer>

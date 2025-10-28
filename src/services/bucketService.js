@@ -1,65 +1,66 @@
 // src/services/bucketService.js
-import api from '../api/axios';
+import api from "../api/axios";
 
-// 서버가 페이지네이션 객체를 주므로 results를 꺼내서 배열로 반환
-const normalizeList = (data) => {
-  if (Array.isArray(data)) return data;
-  if (data && Array.isArray(data.results)) return data.results;
-  return [];
+const normalizeItem = (raw) => {
+  if (!raw || typeof raw !== "object") return null;
+  return {
+    id: raw.id,
+    title: raw.title,
+    created_at: raw.created_at,
+    user: raw.user,
+  };
 };
 
-// 버킷리스트 전체 조회 (GET /mypage/bucketlists/?page=1)
+const normalizeList = (data) => {
+  if (!data) return [];
+  if (Array.isArray(data)) return data.map(normalizeItem).filter(Boolean);
+  const results = Array.isArray(data.results) ? data.results : [];
+  return results.map(normalizeItem).filter(Boolean);
+};
+
 export const fetchBucketList = async (page = 1) => {
   try {
-    const res = await api.get(`mypage/bucketlists/?page=${page}`);
-    return normalizeList(res.data);
-  } catch (err) {
-    console.error('❌ 버킷리스트 조회 실패:', err);
+    const res = await api.get("mypage/bucketlists/", { params: { page } });
+    return normalizeList(res?.data);
+  } catch {
     return [];
   }
 };
 
-// 항목 추가 (POST /mypage/bucketlists/ , form-data: title)
-export const addBucketItem = async (title) => {
-  try {
-    const fd = new FormData();
-    fd.append('title', title);
-    const res = await api.post('mypage/bucketlists/', fd, { headers: {} });
-    return res.data; // { id, title, created_at, ... }
-  } catch (err) {
-    console.error('❌ 버킷리스트 추가 실패:', err?.response?.data || err.message);
-    throw err;
-  }
+export const addBucketItem = async (title, userId) => {
+  const fd = new FormData();
+  fd.append("title", title);
+  fd.append("user", userId);
+  const res = await api.post("mypage/bucketlists/", fd, { headers: {} });
+  return normalizeItem(res?.data);
 };
 
-// 항목 수정 (PUT /mypage/bucketlists/{id}/ , form-data)
 export const updateBucketItem = async (id, data) => {
-  try {
-    const fd = new FormData();
-    Object.entries(data || {}).forEach(([k, v]) => fd.append(k, v));
-    const res = await api.put(`mypage/bucketlists/${id}/`, fd, { headers: {} });
-    return res.data;
-  } catch (err) {
-    console.error(`❌ 버킷리스트 항목 수정 실패 (id: ${id})`, err?.response?.data || err.message);
-    throw err;
-  }
+  const fd = new FormData();
+  if (data?.title !== undefined) fd.append("title", data.title);
+  if (data?.user !== undefined) fd.append("user", data.user);
+  const res = await api.put(`mypage/bucketlists/${id}/`, fd, { headers: {} });
+  return normalizeItem(res?.data);
 };
 
-// 항목 삭제 (DELETE /mypage/bucketlists/{id}/)
+export const patchBucketItem = async (id, data) => {
+  const fd = new FormData();
+  if (data?.title !== undefined) fd.append("title", data.title);
+  if (data?.user !== undefined) fd.append("user", data.user);
+  const res = await api.patch(`mypage/bucketlists/${id}/`, fd, { headers: {} });
+  return normalizeItem(res?.data);
+};
+
 export const deleteBucketItem = async (id) => {
-  try {
-    await api.delete(`mypage/bucketlists/${id}/`);
-    return true;
-  } catch (err) {
-    console.error(`❌ 버킷리스트 항목 삭제 실패 (id: ${id})`, err?.response?.data || err.message);
-    throw err;
-  }
+  await api.delete(`mypage/bucketlists/${id}/`);
+  return true;
 };
 
 const bucketService = {
   getList: fetchBucketList,
   create: addBucketItem,
   update: updateBucketItem,
+  patch: patchBucketItem,
   remove: deleteBucketItem,
 };
 

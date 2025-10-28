@@ -1,12 +1,14 @@
+// components/cards/SkillCard.jsx
 import PropTypes from "prop-types";
 import { memo, useMemo } from "react";
+import { Trophy, Award, GraduationCap } from "lucide-react";
+import { Link } from "react-router-dom";
 import { getLevelColor } from "../../constants/divingCerts";
 
 const REQUIRED_DIVES = 50;
 
 function SkillCard({ skill }) {
   const {
-    title = "My Skills",
     level = "Open Water Diver",
     specialties = [],
     logs = 0,
@@ -18,7 +20,16 @@ function SkillCard({ skill }) {
     (level || "").toLowerCase().includes("rescue") ||
     specialties.some((s) => (s || "").toLowerCase().includes("rescue"));
 
-  const progressPct = Math.min((logs / REQUIRED_DIVES) * 100, 100);
+  // Master Scuba Diver 요건 카운트
+  const msdCount =
+    (hasRescue ? 1 : 0) + (specialtyCount >= 5 ? 1 : 0) + (logs >= REQUIRED_DIVES ? 1 : 0);
+
+  // 원형 게이지
+  const R = 60;
+  const C = 2 * Math.PI * R;
+  const ringPct = msdCount / 3;
+  const dash = Math.max(0.0001, C * ringPct);
+  const gap = C - dash;
 
   const nextSteps = useMemo(() => {
     const steps = [];
@@ -31,44 +42,89 @@ function SkillCard({ skill }) {
   const allDone = nextSteps.length === 0;
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-md mb-6">
-      {/* 상단 타이틀 */}
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
-        <button
-          className="text-xs px-2 py-1 rounded-full border text-gray-700 bg-gray-50 hover:bg-blue-100 hover:text-blue-700 transition"
-          onClick={() => window.location.href = "/training"}
-        >
-          Go to Training Page
-        </button>
+    <div className="rounded-2xl bg-white pt-[4px] pb-[14px] px-5 sm:pt-[5px] sm:pb-[18px] sm:px-6">
+      {/* ===== 헤더 ===== */}
+      <div className="flex items-center gap-8">
+        {/* 원형 게이지 */}
+        <div className="relative flex items-center justify-center">
+          <svg
+            width="130"
+            height="130"
+            viewBox="0 0 130 130"
+            className="block"
+            aria-hidden="true"
+          >
+            <circle
+              cx="65"
+              cy="65"
+              r={R}
+              fill="none"
+              stroke="rgba(148,163,184,0.05)"
+              strokeWidth="8"
+            />
+            <circle
+              cx="65"
+              cy="65"
+              r={R}
+              fill="none"
+              stroke="#D4A21A"
+              strokeWidth="8"
+              strokeLinecap="round"
+              strokeDasharray={`${dash} ${gap}`}
+              transform="rotate(-90 65 65)"
+            />
+          </svg>
+
+          {/* 중앙 트로피 & 분수 */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <Trophy size={46} className="text-amber-500" />
+            <div className="mt-1 text-slate-900 text-xl font-semibold tabular-nums">
+              {msdCount}/3
+            </div>
+          </div>
+        </div>
+
+        {/* 우측 정보 블록 */}
+        <div className="min-w-0 flex-1">
+          <div className="mb-2">
+            <div className="text-slate-500 text-sm">Current Level</div>
+            <div className="mt-2 inline-flex items-center gap-2">
+              <span
+                className={`inline-flex items-center gap-2 rounded-full ${getLevelColor(
+                  level
+                )} text-white text-sm font-semibold px-4 py-1.5`}
+              >
+                <Award size={16} />
+                <span className="truncate">{level}</span>
+              </span>
+            </div>
+          </div>
+
+          {/* 총 다이브 수 */}
+          <div className="flex items-end gap-2">
+            <div className="text-3xl leading-none font-semibold text-slate-900 tabular-nums">
+              {logs}
+            </div>
+            <div className="pb-0.5 text-slate-600">dives</div>
+          </div>
+
+          <div className="mt-2 text-slate-600 text-sm">
+            Master Diver: <span className="tabular-nums">{msdCount}/3</span> completed
+          </div>
+        </div>
       </div>
 
-      {/* 현재 레벨 옆에만 컬러 배지 표시 */}
-      <p className="text-gray-700 font-medium mb-1 flex items-center gap-2">
-        <span className={`inline-block w-3 h-3 rounded-full ${getLevelColor(level)}`} />
-        {level} ({logs} dives)
-      </p>
-
-      {/* 진행 바 */}
-      <div className="w-full bg-gray-200 rounded-full h-2">
-        <div
-          className="h-2 rounded-full bg-blue-500"
-          style={{ width: `${progressPct}%` }}
-        />
-      </div>
-      <p className="text-xs text-gray-600 mt-1">
-        {Math.max(REQUIRED_DIVES - logs, 0)} more dives to reach 50
-      </p>
+      {/* 구분선 */}
+      <div className="my-5 h-px bg-slate-200/60" />
 
       {/* 스페셜티 태그 */}
       {Array.isArray(specialties) && specialties.length > 0 && (
-        <div className="mt-4">
-          <p className="text-sm font-medium text-gray-800">Specialties</p>
-          <div className="flex flex-wrap gap-2 mt-2">
+        <div className="mb-4">
+          <div className="flex flex-wrap gap-1.5">
             {specialties.map((s, idx) => (
               <span
                 key={`${s}-${idx}`}
-                className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs"
+                className="bg-blue-50 text-blue-700 border border-blue-100/80 px-2 py-0.5 rounded-full text-xs"
               >
                 {s}
               </span>
@@ -77,63 +133,80 @@ function SkillCard({ skill }) {
         </div>
       )}
 
-      {/* 체크리스트 카드. 원형 아이콘 제거하고 상태만 텍스트로 표시 */}
-      <div className="mt-4">
-        <p className="text-sm font-medium text-gray-800">Master Scuba Diver checklist</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-2 text-sm">
-          <div
-            className={`rounded-lg border p-3 ${
-              hasRescue ? "border-green-400 bg-green-50" : "border-gray-200 bg-white"
-            }`}
-          >
-            <p className="font-medium">Rescue Diver</p>
-            <p className="text-gray-600 text-xs">{hasRescue ? "Completed" : "Not yet"}</p>
-          </div>
-
-          <div
-            className={`rounded-lg border p-3 ${
-              specialtyCount >= 5 ? "border-green-400 bg-green-50" : "border-gray-200 bg-white"
-            }`}
-          >
-            <p className="font-medium">Specialties</p>
-            <p className="text-gray-600 text-xs">{specialtyCount} / 5</p>
-          </div>
-
-          <div
-            className={`rounded-lg border p-3 ${
-              logs >= REQUIRED_DIVES ? "border-green-400 bg-green-50" : "border-gray-200 bg-white"
-            }`}
-          >
-            <p className="font-medium">Logged dives</p>
-            <p className="text-gray-600 text-xs">
-              {logs} / {REQUIRED_DIVES}
-            </p>
-          </div>
+      {/* 체크 카드 3개 */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+        <div
+          className={`rounded-xl p-3 ${
+            hasRescue ? "bg-green-50" : "bg-white"
+          } ring-1 ring-slate-200`}
+        >
+          <p className="font-medium text-slate-900">Rescue Diver</p>
+          <p className="text-slate-600 text-xs">{hasRescue ? "Completed" : "Not yet"}</p>
         </div>
 
-        {/* 다음 단계 안내 */}
-        <div className="mt-3">
-          {allDone ? (
-            <p className="text-sm text-green-700">All Master Scuba Diver requirements met.</p>
-          ) : (
-            <>
-              <p className="text-sm text-gray-800 font-medium">Next steps</p>
-              <ul className="list-disc list-inside text-sm text-gray-700 mt-1">
-                {nextSteps.map((n, i) => (
-                  <li key={i}>{n}</li>
-                ))}
-              </ul>
-            </>
-          )}
+        <div
+          className={`rounded-xl p-3 ${
+            specialtyCount >= 5 ? "bg-green-50" : "bg-white"
+          } ring-1 ring-slate-200`}
+        >
+          <p className="font-medium text-slate-900">Specialties</p>
+          <p className="text-slate-600 text-xs">{specialtyCount} / 5</p>
+        </div>
+
+        <div
+          className={`rounded-xl p-3 ${
+            logs >= REQUIRED_DIVES ? "bg-green-50" : "bg-white"
+          } ring-1 ring-slate-200`}
+        >
+          <p className="font-medium text-slate-900">Logged dives</p>
+          <p className="text-slate-600 text-xs">
+            {logs} / {REQUIRED_DIVES}
+          </p>
         </div>
       </div>
+
+      {/* ===== 하단 교육 CTA ===== */}
+      <div className="mt-6 rounded-xl ring-1 ring-indigo-200/60 bg-indigo-50/60 p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="shrink-0 inline-flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-100">
+              <GraduationCap size={18} className="text-indigo-700" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-slate-900 font-semibold">
+                Level up your diving with tailored training
+              </div>
+              <p className="text-slate-600 text-sm mt-1">
+                {allDone
+                  ? "You've met all Master Scuba Diver requirements—awesome! Explore advanced specialties to broaden your range and keep your skills sharp."
+                  : "Based on your current profile, we’ll recommend the most relevant courses to close the gap fast—whether that’s Rescue, key specialties, or targeted dive practice."}
+              </p>
+            </div>
+          </div>
+
+          {/* 연한 기본 → 호버 시 진해지는 버튼 (아이콘 제거) */}
+          <div className="sm:ml-auto">
+            <Link
+              to="/training"
+              aria-label="Go to Training"
+              className="inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold
+                         bg-indigo-100 text-indigo-700 ring-1 ring-indigo-200/70
+                         hover:bg-indigo-600 hover:text-white hover:ring-indigo-600/80
+                         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500
+                         transition-colors"
+            >
+              Go to Training
+            </Link>
+          </div>
+        </div>
+      </div>
+      {/* ===== /하단 교육 CTA ===== */}
     </div>
   );
 }
 
 SkillCard.propTypes = {
   skill: PropTypes.shape({
-    title: PropTypes.string,
     level: PropTypes.string,
     specialties: PropTypes.arrayOf(PropTypes.string),
     logs: PropTypes.number,
