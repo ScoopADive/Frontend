@@ -5,10 +5,10 @@ import api from '../api/axios';
 import Layout from '../components/layout/Layout';
 
 /*
-  Theme notes
-  - Uses the compact layout (small side paddings) but keeps comfortable internal paddings
-  - Typography and colors follow the dark-slate primary used in your latest theme
-  - Logic is unchanged from your original file
+  Notes
+  - Footer는 Layout에 있으므로 이 파일에서는 홈 전용 하단 섹션만 구성
+  - Beginner 섹션은 최대 4개 유지
+  - Find the right spot for you는 각 3개로 제한
 */
 
 function HomePage() {
@@ -25,7 +25,7 @@ function HomePage() {
   const [newJob, setNewJob] = useState({ title: '', location: '', description: '' });
   const [creating, setCreating] = useState(false);
 
-  // dummy recommendations (no API yet)
+  // dummy filters
   const SEASONS = ['Spring', 'Summer', 'Autumn', 'Winter'];
   const SKILLS = ['Beginner', 'Intermediate', 'Advanced', 'Specialty'];
 
@@ -83,6 +83,7 @@ function HomePage() {
     []
   );
 
+  // ✅ Beginner 섹션은 최대 4개
   const beginnerPicks = useMemo(
     () => DUMMY_SPOTS.filter((s) => s.skills.includes('Beginner')).slice(0, 4),
     [DUMMY_SPOTS]
@@ -91,14 +92,50 @@ function HomePage() {
   const [activeSeason, setActiveSeason] = useState('Spring');
   const [activeSkill, setActiveSkill] = useState('Beginner');
 
+  // ✅ 각 3개로 제한
   const seasonalPicks = useMemo(
-    () => DUMMY_SPOTS.filter((s) => s.seasons.includes(activeSeason)).slice(0, 6),
+    () => DUMMY_SPOTS.filter((s) => s.seasons.includes(activeSeason)).slice(0, 3),
     [DUMMY_SPOTS, activeSeason]
   );
 
+  // ✅ 각 3개로 제한
   const skillPicks = useMemo(
-    () => DUMMY_SPOTS.filter((s) => s.skills.includes(activeSkill)).slice(0, 6),
+    () => DUMMY_SPOTS.filter((s) => s.skills.includes(activeSkill)).slice(0, 3),
     [DUMMY_SPOTS, activeSkill]
+  );
+
+  // --- AI Picks (Dummy) ---
+  const DUMMY_AI_BLOGS = useMemo(
+    () => [
+      {
+        id: 'ai-1',
+        title: 'Choosing Your First Dive Site: What Matters Most',
+        excerpt:
+          'Water entry, current strength, visibility, and depth profile: a beginner-safe checklist to make confident decisions.',
+        source: 'AI-curated blog',
+        date: '2025-10-25',
+        url: '#',
+      },
+      {
+        id: 'ai-2',
+        title: 'How to Log Dives That Actually Help You Improve',
+        excerpt:
+          'From SAC rate to weighting notes: structure your log to learn faster and avoid repeating mistakes.',
+        source: 'AI-curated blog',
+        date: '2025-10-28',
+        url: '#',
+      },
+      {
+        id: 'ai-3',
+        title: 'Seasonal Picks: Where Beginners Thrive in Spring',
+        excerpt:
+          'Gentle conditions, shore access, and reliable visibility: spring-friendly sites around East Asia.',
+        source: 'AI-curated blog',
+        date: '2025-11-01',
+        url: '#',
+      },
+    ],
+    []
   );
 
   useEffect(() => {
@@ -246,7 +283,7 @@ function HomePage() {
         </div>
       </section>
 
-      {/* Recommended for beginners */}
+      {/* Recommended for beginners (max 4) */}
       <section className="mt-8">
         <div className="rounded-lg bg-white border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md transition p-6">
           <div className="flex items-center justify-between">
@@ -343,7 +380,7 @@ function HomePage() {
         </div>
       </section>
 
-      {/* Seasonal and Skill recommendations */}
+      {/* Seasonal and Skill recommendations (각 3개) */}
       <section className="mt-8">
         <div className="rounded-lg bg-white border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md transition p-6">
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
@@ -382,6 +419,7 @@ function HomePage() {
               ))}
             </div>
 
+            {/* max 3 */}
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {seasonalPicks.map((s) => (
                 <SpotCard key={`season-${s.id}`} spot={s} tagColor="emerald" />
@@ -406,6 +444,7 @@ function HomePage() {
               ))}
             </div>
 
+            {/* max 3 */}
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {skillPicks.map((s) => (
                 <SpotCard key={`skill-${s.id}`} spot={s} tagColor="indigo" />
@@ -416,9 +455,9 @@ function HomePage() {
       </section>
 
       {/* Feed */}
-      <section id="feed" className="mt-10 mb-10">
+      <section id="feed" className="mt-10">
         <div className="grid md:grid-cols-3 gap-6">
-          {/* Community Feed card */}
+          {/* Community Feed */}
           <div className="md:col-span-2">
             <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition border border-gray-200 p-6">
               <h2 className="text-xl md:text-2xl font-bold text-slate-900">Community Feed</h2>
@@ -446,7 +485,7 @@ function HomePage() {
             </div>
           </div>
 
-          {/* Right sidebar cards */}
+          {/* Right sidebar */}
           <aside className="flex flex-col space-y-6">
             <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition border border-gray-200 p-5">
               <h3 className="text-lg md:text-xl font-semibold text-slate-900">Top Divers</h3>
@@ -509,6 +548,148 @@ function HomePage() {
               )}
             </div>
           </aside>
+        </div>
+      </section>
+
+      {/* --- AI Picks: Related Reading (Dummy) --- */}
+      <section id="ai-blogs" className="mt-10">
+        <div className="rounded-lg bg-white border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md transition p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg md:text-xl font-bold text-slate-900">AI Picks: Related Reading</h3>
+              <p className="text-slate-600 mt-1 text-[14px]">
+                Curated articles based on your recent logs and interests.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="hidden sm:inline-flex items-center rounded-md border border-gray-200 px-3 py-1.5 text-[13px] font-semibold text-slate-700 hover:bg-gray-50 hover:shadow-sm transition"
+              onClick={() => {
+                // TODO: Hook to real API (e.g., /home/ai-blogs?context=recent_logs)
+              }}
+            >
+              Refresh with AI
+            </button>
+          </div>
+
+          <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
+            {DUMMY_AI_BLOGS.map((item) => (
+              <article key={item.id} className="group rounded-lg border border-gray-200 hover:border-gray-300 bg-white p-4 shadow-sm hover:shadow-md transition">
+                <h4 className="font-semibold text-slate-900 text-[15px] line-clamp-2">{item.title}</h4>
+                <p className="mt-1 text-[13px] text-slate-600 line-clamp-3">{item.excerpt}</p>
+                <div className="mt-2 flex items-center justify-between text-[12px] text-slate-500">
+                  <span>{item.source}</span>
+                  <time dateTime={item.date}>{new Date(item.date).toLocaleDateString()}</time>
+                </div>
+                <div className="mt-3">
+                  <a href={item.url} className="text-[13px] font-semibold text-slate-900 hover:underline">
+                    Read more →
+                  </a>
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="sm:hidden mt-4">
+            <button
+              type="button"
+              className="w-full inline-flex items-center justify-center rounded-md border border-gray-200 px-3 py-1.5 text-[13px] font-semibold text-slate-700 hover:bg-gray-50 hover:shadow-sm transition"
+              onClick={() => {}}
+            >
+              Refresh with AI
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* --- Safety Reminders (초보자용 안전 체크) --- */}
+      <section className="mt-8">
+        <div className="rounded-lg bg-white border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md transition p-6">
+          <h3 className="text-lg md:text-xl font-bold text-slate-900">Safety Reminders</h3>
+          <p className="text-slate-600 text-[14px] mt-1">Quick checklist before your next dive.</p>
+          <ul className="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {[
+              'Buddy check: air, weights, releases, BCD, final OK',
+              'Plan your dive & dive your plan',
+              'Watch no-deco time and ascent rate',
+              'Stay hydrated; rest between dives',
+              'Surface marker buoy (SMB) ready',
+              'If stressed: pause, breathe, signal',
+            ].map((txt, i) => (
+              <li key={i} className="rounded-md border border-gray-200 bg-gray-50 p-3 text-[13px] text-slate-700">
+                {txt}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* --- FAQ Quick Answers (홈 전용 미니 FAQ) --- */}
+      <section className="mt-8">
+        <div className="rounded-lg bg-white border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md transition p-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg md:text-xl font-bold text-slate-900">FAQ Quick Answers</h3>
+            <Link to="/help" className="text-[13px] font-semibold text-slate-900 hover:underline">
+              View all →
+            </Link>
+          </div>
+          <div className="mt-4 grid md:grid-cols-3 gap-4">
+            {[
+              {
+                q: 'How do I create my first log?',
+                a: 'Go to “Create Log”, fill the basics (site, depth, time), and save. You can add photos later.',
+              },
+              {
+                q: 'Can beginners find safe sites easily?',
+                a: 'Yes — use “Recommended for beginners” and filter by season for gentle conditions.',
+              },
+              {
+                q: 'How can I share a log to my blog?',
+                a: 'Open a log detail and use the WordPress Publish button after connecting your account.',
+              },
+            ].map((f, i) => (
+              <div key={i} className="rounded-md border p-4 hover:shadow-sm transition">
+                <p className="font-semibold text-slate-900 text-[14px]">{f.q}</p>
+                <p className="mt-1 text-[13px] text-slate-600">{f.a}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* --- Final CTA Strip (홈 전용 마무리) --- */}
+      <section className="mt-8 mb-10">
+        <div className="rounded-lg border border-gray-200 bg-gradient-to-br from-[#f7f9fc] to-[#eef4ff] shadow-sm hover:shadow-md transition p-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h3 className="text-lg md:text-xl font-extrabold text-slate-900 tracking-[-0.01em]">
+                Ready to log your next dive?
+              </h3>
+              <p className="text-slate-600 text-[14px] mt-1">
+                Start a new log, explore beginner-friendly spots, or take our quick survey for tailored picks.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Link
+                to="/log/create"
+                className="inline-flex items-center justify-center rounded-md bg-slate-900 text-white px-4 py-2 text-[14px] font-semibold hover:opacity-95 hover:shadow"
+              >
+                Create your first log
+              </Link>
+              <Link
+                to="/spots"
+                className="inline-flex items-center justify-center rounded-md border border-gray-200 bg-white text-slate-900 px-4 py-2 text-[14px] font-semibold hover:bg-gray-50 hover:shadow-sm"
+              >
+                Browse spots
+              </Link>
+              <Link
+                to="/settings/preferences"
+                className="inline-flex items-center justify-center rounded-md border border-gray-200 bg-white text-slate-900 px-4 py-2 text-[14px] font-semibold hover:bg-gray-50 hover:shadow-sm"
+              >
+                Take survey
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
