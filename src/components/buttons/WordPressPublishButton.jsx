@@ -1,4 +1,3 @@
-// src/components/buttons/WordPressPublishButton.jsx
 import { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { getWPTokenList, publishLogbookToWP } from '../../api/wordpress';
@@ -6,10 +5,16 @@ import { getWPTokenList, publishLogbookToWP } from '../../api/wordpress';
 function pickUrl(res) {
   if (!res) return '';
   const cands = [
-    res.url, res.post_url, res.link, res.permalink,
-    res?.data?.url, res?.data?.post_url, res?.data?.link, res?.data?.permalink,
+    res.url,
+    res.post_url,
+    res.link,
+    res.permalink,
+    res.data?.url,
+    res.data?.post_url,
+    res.data?.link,
+    res.data?.permalink
   ];
-  return cands.find((v) => typeof v === 'string' && v.startsWith('http')) || '';
+  return cands.find(v => typeof v === 'string' && v.startsWith('http')) || '';
 }
 
 export default function WordPressPublishButton({ logbookId, className = '', onPublished }) {
@@ -21,17 +26,14 @@ export default function WordPressPublishButton({ logbookId, className = '', onPu
   const [postUrl, setPostUrl] = useState('');
   const [resp, setResp] = useState(null);
 
-  const siteEnv =
-    typeof import.meta !== 'undefined'
-      ? import.meta.env?.VITE_WP_SITE_URL
-      : process.env.REACT_APP_WP_SITE_URL;
-  const siteUrl = typeof siteEnv === 'string' ? siteEnv.replace(/\/+$/, '') : '';
+  const siteEnv = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_WP_SITE_URL : process.env.REACT_APP_WP_SITE_URL;
+  const siteUrl = typeof siteEnv === 'string' ? siteEnv.replace(/\/+$/,'') : '';
 
   const checkConnection = async () => {
     setLoading(true);
     try {
       const data = await getWPTokenList();
-      const has = Array.isArray(data?.results) && data.results.length > 0;
+      const has = Array.isArray(data?.results) ? data.results.length > 0 : false;
       setConnected(has);
     } catch {
       setConnected(false);
@@ -90,7 +92,9 @@ export default function WordPressPublishButton({ logbookId, className = '', onPu
   }
 
   if (!connected) {
-    return <span className={`text-sm text-gray-600 ${className}`}>Connect WordPress to publish</span>;
+    return (
+      <span className={`text-sm text-gray-600 ${className}`}>Connect WordPress to publish</span>
+    );
   }
 
   const genericPostsUrl = 'https://wordpress.com/posts';
@@ -113,12 +117,7 @@ export default function WordPressPublishButton({ logbookId, className = '', onPu
                 Open blog
               </a>
             ) : null}
-            <a
-              href={siteUrl ? `${siteUrl}/wp-admin/edit.php` : genericPostsUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm text-emerald-700 underline"
-            >
+            <a href={siteUrl ? `${siteUrl}/wp-admin/edit.php` : genericPostsUrl} target="_blank" rel="noreferrer" className="text-sm text-emerald-700 underline">
               Posts
             </a>
           </>
@@ -133,5 +132,5 @@ export default function WordPressPublishButton({ logbookId, className = '', onPu
 WordPressPublishButton.propTypes = {
   logbookId: PropTypes.number.isRequired,
   className: PropTypes.string,
-  onPublished: PropTypes.func,
+  onPublished: PropTypes.func
 };
