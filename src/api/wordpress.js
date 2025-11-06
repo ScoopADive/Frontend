@@ -13,7 +13,7 @@ export function publishLogbookToWP(logbookId) {
 }
 
 export async function fetchWPAuthorizeUrl() {
-  const res = await api.get('/wordpress/oauth/login/swagger/');
+  const res = await api.get('/wordpress/oauth/login/');
   const raw = res?.data;
   const url =
     raw?.url ||
