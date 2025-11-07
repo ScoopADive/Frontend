@@ -1,9 +1,9 @@
 <!doctype html>
 <html>
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   <title>WP OAuth Bridge</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 </head>
 <body>
 <script>
@@ -13,6 +13,7 @@
       var code = p.get('code') || '';
       var state = p.get('state') || '';
       if (window.opener && code) {
+        // 같은 오리진만 허용
         window.opener.postMessage({ type: 'WP_CODE', code: code, state: state }, window.location.origin);
       }
     } catch (e) {}
