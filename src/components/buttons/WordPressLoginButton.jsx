@@ -1,7 +1,7 @@
 // src/components/buttons/WordPressLoginButton.jsx
 import { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { getWPTokenList, saveWPToken, getWPOAuthStartUrl } from '../../api/wordpress';
+import { getWPTokenList, saveWPToken, fetchWPAuthorizeUrl } from '../../api/wordpress';
 
 export default function WordPressLoginButton({ className = '' }) {
   const [loading, setLoading] = useState(true);
@@ -44,7 +44,9 @@ export default function WordPressLoginButton({ className = '' }) {
           const ok = Array.isArray(d?.results) && d.results.length > 0;
           if (ok) {
             setConnected(true);
-            try { popupRef.current?.close?.(); } catch {}
+            try {
+              popupRef.current?.close?.();
+            } catch {}
             if (pollTimer.current) clearInterval(pollTimer.current);
           }
         } catch {}
@@ -58,7 +60,9 @@ export default function WordPressLoginButton({ className = '' }) {
       mounted = false;
       window.removeEventListener('message', onMessage);
       if (pollTimer.current) clearInterval(pollTimer.current);
-      try { popupRef.current?.close?.(); } catch {}
+      try {
+        popupRef.current?.close?.();
+      } catch {}
     };
   }, []);
 
@@ -72,7 +76,9 @@ export default function WordPressLoginButton({ className = '' }) {
         if (ok) {
           setConnected(true);
           clearInterval(pollTimer.current);
-          try { popupRef.current?.close?.(); } catch {}
+          try {
+            popupRef.current?.close?.();
+          } catch {}
           return;
         }
       } catch {}
@@ -87,7 +93,7 @@ export default function WordPressLoginButton({ className = '' }) {
     setError('');
     setStarting(true);
     try {
-      const authUrl = getWPOAuthStartUrl(); // 문자열 조립만, 네트워크 호출 금지
+      const authUrl = await fetchWPAuthorizeUrl(); // 문자열 조립만, 네트워크 호출 금지
       const w = 560;
       const h = 720;
       const y = window.top.outerHeight / 2 + window.top.screenY - h / 2;
@@ -98,7 +104,7 @@ export default function WordPressLoginButton({ className = '' }) {
       popupRef.current = window.open(
         authUrl,
         'wp_oauth',
-        `popup=yes,width=${w},height=${h},left=${x},top=${y}`
+        `popup=yes,width=${w},height=${h},left=${x},top=${y}`,
       );
 
       startPolling();
@@ -115,7 +121,7 @@ export default function WordPressLoginButton({ className = '' }) {
       await saveWPToken({
         access_token: manualToken.trim(),
         refresh_token: manualRefresh.trim(),
-        expires_at: null
+        expires_at: null,
       });
       const data = await getWPTokenList();
       const ok = Array.isArray(data?.results) && data.results.length > 0;
@@ -142,7 +148,9 @@ export default function WordPressLoginButton({ className = '' }) {
 
   if (connected) {
     return (
-      <span className={`inline-flex items-center rounded-lg px-3 py-2 bg-emerald-100 text-emerald-700 text-sm ${className}`}>
+      <span
+        className={`inline-flex items-center rounded-lg px-3 py-2 bg-emerald-100 text-emerald-700 text-sm ${className}`}
+      >
         WordPress connected
       </span>
     );
@@ -150,7 +158,11 @@ export default function WordPressLoginButton({ className = '' }) {
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <button onClick={handleClick} disabled={starting} className="rounded-lg px-4 py-2 bg-gray-900 text-white">
+      <button
+        onClick={handleClick}
+        disabled={starting}
+        className="rounded-lg px-4 py-2 bg-gray-900 text-white"
+      >
         {starting ? 'Connecting...' : 'Connect WordPress'}
       </button>
       <button onClick={() => setManualOpen(true)} className="rounded-lg px-3 py-2 border text-sm">
@@ -164,13 +176,13 @@ export default function WordPressLoginButton({ className = '' }) {
             <div className="text-base font-semibold">Paste access token</div>
             <input
               value={manualToken}
-              onChange={e => setManualToken(e.target.value)}
+              onChange={(e) => setManualToken(e.target.value)}
               placeholder="access_token"
               className="w-full border rounded-lg px-3 py-2"
             />
             <input
               value={manualRefresh}
-              onChange={e => setManualRefresh(e.target.value)}
+              onChange={(e) => setManualRefresh(e.target.value)}
               placeholder="refresh_token (optional)"
               className="w-full border rounded-lg px-3 py-2"
             />
@@ -178,7 +190,10 @@ export default function WordPressLoginButton({ className = '' }) {
               <button onClick={() => setManualOpen(false)} className="border rounded-lg px-3 py-2">
                 Cancel
               </button>
-              <button onClick={handleManualSave} className="bg-indigo-600 text-white rounded-lg px-4 py-2">
+              <button
+                onClick={handleManualSave}
+                className="bg-indigo-600 text-white rounded-lg px-4 py-2"
+              >
                 Save
               </button>
             </div>
@@ -190,5 +205,5 @@ export default function WordPressLoginButton({ className = '' }) {
 }
 
 WordPressLoginButton.propTypes = {
-  className: PropTypes.string
+  className: PropTypes.string,
 };

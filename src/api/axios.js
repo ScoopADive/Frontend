@@ -11,7 +11,7 @@ export const STORAGE_KEYS = {
 
 // 단일 Axios 인스턴스
 const API = axios.create({
-  baseURL: 'https://scoopadive.com/api/',
+  baseURL: 'https://scoopadive.com/api',
   headers: { Accept: 'application/json' },
   withCredentials: false, // 쿠키를 쓰지 않고 로컬스토리지 토큰 전략
 });
@@ -231,8 +231,7 @@ API.interceptors.request.use(
       config.headers['Authorization'] = `Bearer ${access}`;
     }
 
-    const isFormData =
-      typeof FormData !== 'undefined' && config.data instanceof FormData;
+    const isFormData = typeof FormData !== 'undefined' && config.data instanceof FormData;
     if (isFormData && config.headers && config.headers['Content-Type']) {
       delete config.headers['Content-Type'];
     } else if (!isFormData) {
@@ -242,7 +241,7 @@ API.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // 응답 인터셉터: 401 처리 (한 번만 리프레시 시도, 동시요청 큐잉)
@@ -295,7 +294,7 @@ API.interceptors.response.use(
     clearSession();
     redirectToSignIn();
     return Promise.reject(error);
-  }
+  },
 );
 
 // 앱 시작 시 보유 토큰이 있으면 타이머 세팅
