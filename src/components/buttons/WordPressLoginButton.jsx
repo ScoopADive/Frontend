@@ -87,16 +87,27 @@ export default function WordPressLoginButton({ className = '' }) {
     setError('');
     setStarting(true);
 
-    // 클릭 직후 팝업 먼저 열기 (브라우저 팝업 차단 방지)
-    popupRef.current = window.open('', 'wp_oauth', `popup=yes,width=560,height=720`);
-
     try {
+      // 서버에서 OAuth URL 받아오기
       const authUrl = await fetchWPAuthorizeUrl();
-      openPopup(authUrl);
+
+      const w = 560;
+      const h = 720;
+      const y = window.top.outerHeight / 2 + window.top.screenY - h / 2;
+      const x = window.top.outerWidth / 2 + window.top.screenX - w / 2;
+
+      // 팝업 바로 열기
+      popupRef.current = window.open(
+        authUrl,
+        'wp_oauth',
+        `popup=yes,width=${w},height=${h},left=${x},top=${y}`,
+      );
+
+      // 토큰 폴링 시작
       startPolling();
-    } catch (xhrErr) {
-      setError(xhrErr?.message || 'Failed to start WordPress OAuth');
-      startPolling();
+    } catch (e) {
+      console.error('WordPress OAuth 시작 실패', e);
+      setError('WordPress OAuth 시작 실패');
     } finally {
       setStarting(false);
     }
