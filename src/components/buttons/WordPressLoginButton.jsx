@@ -7,7 +7,9 @@ import { getWPTokenList, fetchWPAuthorizeUrl } from '../../api/wordpress';
  * 흐름
  * 1) 마운트 시 /wordpress/wordpress-tokens/ 조회 -> connected 판단
  * 2) "Connect WordPress" 클릭
- *     2-1) XHR로 /wordpress/oauth/login/ 호출해 auth_url 수신 → 팝업 이동
+ *     2-1) 클릭 직후 빈 팝업 열기 (팝업 차단 방지)
+ *     2-2) 서버에서 OAuth URL 받아 이동
+ *     2-3) 실패 시 백업으로 /api/wordpress/oauth/login/ 직접 오픈
  * 3) 팝업 열려 있는 동안 700ms 간격으로 토큰 목록 폴링
  * 4) 토큰 저장 확인 시 Connected로 전환, 팝업 닫기
  */
@@ -69,7 +71,7 @@ export default function WordPressLoginButton({ className = '' }) {
     }, 700);
   };
 
-  // 팝업 오픈 유틸
+  // 팝업 열기 유틸
   const openPopup = (url) => {
     const w = 560;
     const h = 720;
@@ -87,28 +89,27 @@ export default function WordPressLoginButton({ className = '' }) {
     setError('');
     setStarting(true);
 
+    // 1️⃣ 클릭 직후 빈 팝업 열기
+    popupRef.current = window.open('', 'wp_oauth', `popup=yes,width=560,height=720`);
+
     try {
-      // 서버에서 OAuth URL 받아오기
-      const authUrl = await fetchWPAuthorizeUrl();
+      // 2️⃣ 서버에서 OAuth URL 받아오기
+      let authUrl = await fetchWPAuthorizeUrl();
+      console.log('Fetched auth URL:', authUrl);
 
-      const w = 560;
-      const h = 720;
-      const y = window.top.outerHeight / 2 + window.top.screenY - h / 2;
-      const x = window.top.outerWidth / 2 + window.top.screenX - w / 2;
+      // 3️⃣ 팝업 이동
+      popupRef.current.location = authUrl;
+    } catch (xhrErr) {
+      // 4️⃣ 실패하면 백업으로 /api/wordpress/oauth/login/ 직접 오픈
+      const base = process.env.REACT_APP_API_BASE || 'https://***.com/api';
+      popupRef.current.location = `${base}/wordpress/oauth/login/`;
 
-      // 팝업 바로 열기
-      popupRef.current = window.open(
-        authUrl,
-        'wp_oauth',
-        `popup=yes,width=${w},height=${h},left=${x},top=${y}`,
-      );
-
-      // 토큰 폴링 시작
-      startPolling();
-    } catch (e) {
-      console.error('WordPress OAuth 시작 실패', e);
-      setError('WordPress OAuth 시작 실패');
+      const msg = xhrErr?.message || 'Failed to start WordPress OAuth';
+      const detail = xhrErr?.response?.data?.detail;
+      setError(detail ? `${msg} (${detail})` : msg);
     } finally {
+      // 5️⃣ 폴링 시작
+      startPolling();
       setStarting(false);
     }
   };
