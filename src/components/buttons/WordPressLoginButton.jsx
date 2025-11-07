@@ -3,16 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { getWPTokenList, fetchWPAuthorizeUrl } from '../../api/wordpress';
 
-/**
- * 흐름
- * 1) 마운트 시 /wordpress/wordpress-tokens/ 조회 -> connected 판단
- * 2) "Connect WordPress" 클릭
- *     2-1) 클릭 직후 빈 팝업 열기 (팝업 차단 방지)
- *     2-2) 서버에서 OAuth URL 받아 이동
- *     2-3) 실패 시 백업으로 /api/wordpress/oauth/login/ 직접 오픈
- * 3) 팝업 열려 있는 동안 700ms 간격으로 토큰 목록 폴링
- * 4) 토큰 저장 확인 시 Connected로 전환, 팝업 닫기
- */
 export default function WordPressLoginButton({ className = '' }) {
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
@@ -62,53 +52,34 @@ export default function WordPressLoginButton({ className = '' }) {
           } catch {}
           return;
         }
-      } catch {
-        // 무시하고 계속 폴링
-      }
+      } catch {}
       if (popupRef.current && popupRef.current.closed) {
         clearInterval(pollTimer.current);
       }
     }, 700);
   };
 
-  // 팝업 열기 유틸
-  const openPopup = (url) => {
-    const w = 560;
-    const h = 720;
-    const y = window.top.outerHeight / 2 + window.top.screenY - h / 2;
-    const x = window.top.outerWidth / 2 + window.top.screenX - w / 2;
-    popupRef.current = window.open(
-      url,
-      'wp_oauth',
-      `popup=yes,width=${w},height=${h},left=${x},top=${y}`,
-    );
-  };
-
-  // OAuth 시작
+  // 클릭 직후 팝업 열고 XHR로 URL 받아 이동
   const handleClick = async () => {
     setError('');
     setStarting(true);
 
-    // 1️⃣ 클릭 직후 빈 팝업 열기
-    popupRef.current = window.open('', 'wp_oauth', `popup=yes,width=560,height=720`);
+    // 1️⃣ 브라우저 팝업 차단 방지용 빈 페이지 먼저 열기
+    popupRef.current = window.open('', 'wp_oauth', 'popup=yes,width=560,height=720');
 
     try {
-      // 2️⃣ 서버에서 OAuth URL 받아오기
-      let authUrl = await fetchWPAuthorizeUrl();
-      console.log('Fetched auth URL:', authUrl);
-
-      // 3️⃣ 팝업 이동
+      // 2️⃣ 인증된 XHR로 OAuth URL 받아오기
+      const authUrl = await fetchWPAuthorizeUrl();
+      // 3️⃣ 팝업 위치 이동
       popupRef.current.location = authUrl;
     } catch (xhrErr) {
-      // 4️⃣ 실패하면 백업으로 /api/wordpress/oauth/login/ 직접 오픈
-      const base = process.env.REACT_APP_API_BASE || 'https://scoopadive.com/api';
-      popupRef.current.location = `${base}/wordpress/oauth/login/`;
-
-      const msg = xhrErr?.message || 'Failed to start WordPress OAuth';
-      const detail = xhrErr?.response?.data?.detail;
-      setError(detail ? `${msg} (${detail})` : msg);
+      console.error('Failed to fetch OAuth URL:', xhrErr);
+      setError('WordPress OAuth 시작 실패');
+      try {
+        popupRef.current?.close?.();
+      } catch {}
     } finally {
-      // 5️⃣ 폴링 시작
+      // 4️⃣ 폴링 시작
       startPolling();
       setStarting(false);
     }
