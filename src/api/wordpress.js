@@ -1,3 +1,4 @@
+// src/api/wordpress.js
 import api from './axios';
 
 /** 토큰 목록 조회 (pagination/array 모두 호환) */
@@ -26,17 +27,31 @@ export async function publishLogbookToWP(logbookId) {
   return r.data;
 }
 
-/**
- * 팝업이 열 주소(=우리 백엔드 로그인 엔드포인트)를 문자열로 반환
- * 절대 fetch/XHR를 하지 않는다! 브라우저 네비게이션만 하게 둔다.
- */
+/** 내부 유틸: 베이스 URL 조립 */
 function buildApiUrl(path) {
   const base = (api?.defaults?.baseURL || '/api').toString().replace(/\/+$/, '');
   const p = path.startsWith('/') ? path : `/${path}`;
   return `${base}${p}`;
 }
 
+/**
+ * OAuth 시작 URL(=우리 백엔드 엔드포인트)을 만들어 반환한다.
+ * 핵심: JWT를 state로 쿼리에 붙여서 백엔드가 그대로 워드프레스로 넘기게 한다.
+ * 절대 fetch/XHR 금지. 이 URL을 'window.open()' 에 직접 넣어 팝업 네비게이션만 발생시킨다.
+ */
 export function getWPOAuthStartUrl() {
-  // 백엔드가 여기서 302로 WordPress authorize로 리다이렉트해야 함
-  return buildApiUrl('/wordpress/oauth/login/');
+  // JWT 가져오기: 프로젝트에 맞는 저장소를 우선 순위로 탐색
+  let jwt =
+    (typeof localStorage !== 'undefined' && (localStorage.getItem('access_token') || localStorage.getItem('jwt') || '')) || '';
+
+  try {
+    // Zustand 등에서 관리한다면 여기에서 가져오도록 확장 가능
+    // 예: const { token } = useUserStore.getState(); if (token) jwt = token;
+  } catch {}
+
+  // state는 URL-안전하게 인코딩 (백엔드에서 그대로 WP authorize에 pass-through)
+  const startUrl = new URL(buildApiUrl('/wordpress/oauth/login/'), window.location.origin);
+  if (jwt) startUrl.searchParams.set('state', jwt);
+
+  return startUrl.toString();
 }

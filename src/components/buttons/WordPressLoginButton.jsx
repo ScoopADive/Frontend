@@ -1,3 +1,4 @@
+// src/components/buttons/WordPressLoginButton.jsx
 import { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { getWPTokenList, saveWPToken, getWPOAuthStartUrl } from '../../api/wordpress';
@@ -13,9 +14,10 @@ export default function WordPressLoginButton({ className = '' }) {
   const pollTimer = useRef(null);
   const popupRef = useRef(null);
 
-  // 최초 연결상태 확인
+  // 연결 상태 초기 확인
   useEffect(() => {
     let mounted = true;
+
     (async () => {
       setLoading(true);
       try {
@@ -29,15 +31,14 @@ export default function WordPressLoginButton({ className = '' }) {
       }
     })();
 
-    // 팝업 postMessage 수신 (선택: 콜백 쪽에서 코드 전달 시)
+    // 팝업 → 부모창 postMessage 수신 (같은 오리진만 허용)
     const onMessage = async (ev) => {
-      // 같은 오리진만 신뢰
       if (ev.origin !== window.location.origin) return;
       const msg = ev.data;
       if (!msg || typeof msg !== 'object') return;
-      if (msg.type === 'WP_CODE') {
-        // 백엔드 콜백이 이미 토큰 저장을 끝내도록 구현되어 있다면,
-        // 여기서는 토큰이 생겼는지만 곧바로 재확인
+
+      if (msg.type === 'WP_CODE' || msg.type === 'WP_OAUTH_DONE') {
+        // 콜백에서 토큰 저장까지 끝낸 뒤 신호가 옴 → 재확인
         try {
           const d = await getWPTokenList();
           const ok = Array.isArray(d?.results) && d.results.length > 0;
@@ -52,7 +53,6 @@ export default function WordPressLoginButton({ className = '' }) {
 
     window.addEventListener('message', onMessage);
 
-    // 정리
     return () => {
       mounted = false;
       window.removeEventListener('message', onMessage);
@@ -61,7 +61,7 @@ export default function WordPressLoginButton({ className = '' }) {
     };
   }, []);
 
-  // 토큰 폴링: 콜백에서 저장 완료될 때까지 주기 확인
+  // 토큰 폴링 (백업 플랜)
   const startPolling = () => {
     if (pollTimer.current) clearInterval(pollTimer.current);
     pollTimer.current = setInterval(async () => {
@@ -75,7 +75,6 @@ export default function WordPressLoginButton({ className = '' }) {
           return;
         }
       } catch {}
-      // 팝업이 사용자가 닫아버리면 중단
       if (popupRef.current && popupRef.current.closed) {
         clearInterval(pollTimer.current);
       }
@@ -86,21 +85,19 @@ export default function WordPressLoginButton({ className = '' }) {
     setError('');
     setStarting(true);
     try {
-      const authUrl = getWPOAuthStartUrl(); // 문자열 조립만, 네트워크 호출 금지
+      const authUrl = getWPOAuthStartUrl(); // 쿼리에 state(JWT) 포함
       const w = 560;
       const h = 720;
       const y = window.top.outerHeight / 2 + window.top.screenY - h / 2;
       const x = window.top.outerWidth / 2 + window.top.screenX - w / 2;
 
-      // 팝업은 "우리 서버 로그인 엔드포인트"를 연다.
-      // 서버는 302로 WordPress authorize로 리다이렉트 → CORS 비검사 네비게이션.
       popupRef.current = window.open(
         authUrl,
         'wp_oauth',
         `popup=yes,width=${w},height=${h},left=${x},top=${y}`
       );
 
-      startPolling();
+      startPolling(); // 백업용 폴링
     } catch {
       setError('Failed to start WordPress OAuth');
     } finally {

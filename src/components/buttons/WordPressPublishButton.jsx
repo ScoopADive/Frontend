@@ -95,7 +95,7 @@ export default function WordPressPublishButton({ logbookId, className = '', onPu
 
   if (loading) {
     return (
-      <button className={`rounded-lg px-4 py-2 bg-gray-200 text-gray-700 ${className}`} disabled>
+      <button className={`rounded-lg px-4 py-2 bg-gray-2 00 text-gray-700 ${className}`} disabled>
         Checking WordPress...
       </button>
     );
