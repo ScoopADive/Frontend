@@ -1,14 +1,13 @@
 // src/components/buttons/WordPressLoginButton.jsx
 import { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { getWPTokenList, fetchWPAuthorizeUrl, getApiBaseUrl } from '../../api/wordpress';
+import { getWPTokenList, fetchWPAuthorizeUrl } from '../../api/wordpress';
 
 /**
  * 흐름
  * 1) 마운트 시 /wordpress/wordpress-tokens/ 조회 -> connected 판단
  * 2) "Connect WordPress" 클릭
- *     2-1) 우선 XHR로 /wordpress/oauth/login/ 호출해 auth_url 수신 → 팝업 이동
- *     2-2) XHR 실패 시, 백업으로 {BASE_URL}/wordpress/oauth/login/ 를 팝업에 직접 오픈
+ *     2-1) XHR로 /wordpress/oauth/login/ 호출해 auth_url 수신 → 팝업 이동
  * 3) 팝업 열려 있는 동안 700ms 간격으로 토큰 목록 폴링
  * 4) 토큰 저장 확인 시 Connected로 전환, 팝업 닫기
  */
@@ -46,7 +45,7 @@ export default function WordPressLoginButton({ className = '' }) {
     };
   }, []);
 
-  // 폴링
+  // 토큰 폴링
   const startPolling = () => {
     if (pollTimer.current) clearInterval(pollTimer.current);
     pollTimer.current = setInterval(async () => {
@@ -88,30 +87,21 @@ export default function WordPressLoginButton({ className = '' }) {
     setError('');
     setStarting(true);
 
-    // 1️⃣ 클릭 직후 팝업 먼저 열기 (브라우저 팝업 차단 방지)
+    // 클릭 직후 팝업 먼저 열기 (브라우저 팝업 차단 방지)
     popupRef.current = window.open('', 'wp_oauth', `popup=yes,width=560,height=720`);
 
     try {
-      // 2️⃣ 서버에서 OAuth URL 받아오기
       const authUrl = await fetchWPAuthorizeUrl();
-      console.log('Fetched auth URL:', authUrl);
-
-      // 3️⃣ 팝업 위치 이동
-      popupRef.current.location = authUrl;
-    } catch (xhrErr) {
-      // 4️⃣ 실패하면 백업으로 직접 백엔드 로그인 페이지 열기
-      const base = getApiBaseUrl();
-      popupRef.current.location = `${base}/wordpress/oauth/login/`;
-
-      const msg = xhrErr?.message || 'Failed to start WordPress OAuth';
-      const detail = xhrErr?.response?.data?.detail;
-      setError(detail ? `${msg} (${detail})` : msg);
-    } finally {
-      // 5️⃣ 폴링 시작
+      openPopup(authUrl);
       startPolling();
+    } catch (xhrErr) {
+      setError(xhrErr?.message || 'Failed to start WordPress OAuth');
+      startPolling();
+    } finally {
       setStarting(false);
     }
   };
+
   if (loading) {
     return (
       <button className={`rounded-lg px-4 py-2 bg-gray-200 text-gray-700 ${className}`} disabled>
@@ -139,7 +129,7 @@ export default function WordPressLoginButton({ className = '' }) {
       >
         {starting ? 'Connecting...' : 'Connect WordPress'}
       </button>
-      {error ? <span className="text-xs text-red-600">{error}</span> : null}
+      {error && <span className="text-xs text-red-600">{error}</span>}
     </div>
   );
 }
