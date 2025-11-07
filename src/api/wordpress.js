@@ -22,3 +22,7 @@ export async function fetchWPAuthorizeUrl() {
   if (!url) throw new Error('Authorize URL not found');
   return url;
 }
+
+export function getApiBaseUrl() {
+  return import.meta.env.VITE_API_BASE_URL || ''; // 환경변수 활용 예시
+}
