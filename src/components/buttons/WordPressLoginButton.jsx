@@ -1,7 +1,7 @@
 // src/components/buttons/WordPressLoginButton.jsx
 import { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
-import { getWPTokenList, fetchWPAuthorizeUrl } from '../../api/wordpress';
+import { getWPTokenList } from '../../api/wordpress';
 
 export default function WordPressLoginButton({ className = '' }) {
   const [loading, setLoading] = useState(true);
@@ -37,7 +37,7 @@ export default function WordPressLoginButton({ className = '' }) {
     };
   }, []);
 
-  // 토큰 폴링
+  // 폴링
   const startPolling = () => {
     if (pollTimer.current) clearInterval(pollTimer.current);
     pollTimer.current = setInterval(async () => {
@@ -52,37 +52,34 @@ export default function WordPressLoginButton({ className = '' }) {
           } catch {}
           return;
         }
-      } catch {}
+      } catch {
+        // 무시
+      }
       if (popupRef.current && popupRef.current.closed) {
         clearInterval(pollTimer.current);
       }
     }, 700);
   };
 
-  // 클릭 직후 팝업 열고 XHR로 URL 받아 이동
-  const handleClick = async () => {
+  // OAuth 시작
+  const handleClick = () => {
     setError('');
     setStarting(true);
 
-    // 1️⃣ 브라우저 팝업 차단 방지용 빈 페이지 먼저 열기
-    popupRef.current = window.open('', 'wp_oauth', 'popup=yes,width=560,height=720');
+    // 1️⃣ 클릭 직후 팝업 먼저 열기 (브라우저 팝업 차단 방지)
+    const w = 560;
+    const h = 720;
+    const y = window.top.outerHeight / 2 + window.top.screenY - h / 2;
+    const x = window.top.outerWidth / 2 + window.top.screenX - w / 2;
+    popupRef.current = window.open(
+      '/api/wordpress/oauth/login/', // 서버 로그인 엔드포인트 직접 오픈
+      'wp_oauth',
+      `popup=yes,width=${w},height=${h},left=${x},top=${y}`,
+    );
 
-    try {
-      // 2️⃣ 인증된 XHR로 OAuth URL 받아오기
-      const authUrl = await fetchWPAuthorizeUrl();
-      // 3️⃣ 팝업 위치 이동
-      popupRef.current.location = authUrl;
-    } catch (xhrErr) {
-      console.error('Failed to fetch OAuth URL:', xhrErr);
-      setError('WordPress OAuth 시작 실패');
-      try {
-        popupRef.current?.close?.();
-      } catch {}
-    } finally {
-      // 4️⃣ 폴링 시작
-      startPolling();
-      setStarting(false);
-    }
+    // 2️⃣ 폴링 시작
+    startPolling();
+    setStarting(false);
   };
 
   if (loading) {
@@ -112,7 +109,7 @@ export default function WordPressLoginButton({ className = '' }) {
       >
         {starting ? 'Connecting...' : 'Connect WordPress'}
       </button>
-      {error && <span className="text-xs text-red-600">{error}</span>}
+      {error ? <span className="text-xs text-red-600">{error}</span> : null}
     </div>
   );
 }
