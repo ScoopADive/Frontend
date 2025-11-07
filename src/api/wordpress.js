@@ -46,10 +46,19 @@ function looksLikeJWT(t) {
   return typeof t === 'string' && t.split('.').length === 3 && t.length > 20;
 }
 
+/** URL-safe 인코딩 (간단·확실한 방식: percent-encoding) */
+function urlSafe(str) {
+  try {
+    return encodeURIComponent(str);
+  } catch {
+    return str;
+  }
+}
+
 /**
  * OAuth 시작 URL(=우리 백엔드 엔드포인트)을 만들어 반환한다.
- * 핵심: JWT를 쿼리 파라미터에 **state와 token 둘 다** 붙여서 백엔드가 어떤 이름을 기대하든 인증되도록 한다.
- * 절대 fetch/XHR 금지. 이 URL을 'window.open()' 에 직접 넣어 팝업 네비게이션만 발생시킨다.
+ * 핵심: JWT를 URL-safe로 인코딩해 **state와 token 둘 다**에 담아 백엔드가 어떤 이름을 기대하든 인증되도록 한다.
+ * 절대 fetch/XHR 금지. 이 URL을 window.open()에 직접 넣어 팝업 네비게이션만 발생시킨다.
  *
  * @param {object} opts
  * @param {boolean} opts.requireAuth JWT가 없으면 에러를 던질지 여부 (기본 true)
@@ -81,28 +90,27 @@ export function getWPOAuthStartUrl(opts = { requireAuth: true }) {
       jwt = window.__APP_JWT || jwt; // 앱 전역에 올려둔 경우
     }
   } catch {
-    // 무시
+    // ignore
   }
 
   if (requireAuth && !looksLikeJWT(jwt)) {
-    // 로그인 상태가 아니면 팝업을 열어도 콜백에서 401이 나므로 여기서 중단
+    // 로그인 상태가 아니라면 팝업을 열어도 콜백에서 401이 날 뿐이므로 중단
     const err = new Error('NO_JWT');
     err.code = 'NO_JWT';
     throw err;
   }
 
-  // state/token은 URL-안전하게 인코딩됨
+  // URL 조립
   const start = buildApiUrl('/wordpress/oauth/login/');
   const startUrl = new URL(start, window.location.origin);
 
   if (looksLikeJWT(jwt)) {
-    // ✅ 양쪽 호환: WP 표준(state) + 기존 백엔드(token) 모두 전달
-    startUrl.searchParams.set('state', jwt);
-    startUrl.searchParams.set('token', jwt);
+    // ✅ 인코딩 적용: 워드프레스 authorize까지 안전하게 전달되도록 보장
+    const jwtSafe = urlSafe(jwt);
+    // 양쪽 호환: WP 표준(state) + 기존 백엔드(token) 모두 전달
+    startUrl.searchParams.set('state', jwtSafe);
+    startUrl.searchParams.set('token', jwtSafe);
   }
-
-  // 디버깅 시 사용
-  // console.debug('[WP] oauth start url =', startUrl.toString());
 
   return startUrl.toString();
 }

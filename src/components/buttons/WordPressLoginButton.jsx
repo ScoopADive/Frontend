@@ -48,7 +48,7 @@ export default function WordPressLoginButton({ className = '' }) {
             if (pollTimer.current) clearInterval(pollTimer.current);
           }
         } catch {
-          // 무시
+          // ignore
         }
       }
     };
@@ -77,7 +77,7 @@ export default function WordPressLoginButton({ className = '' }) {
           return;
         }
       } catch {
-        // 무시
+        // ignore
       }
       if (popupRef.current && popupRef.current.closed) {
         clearInterval(pollTimer.current);
@@ -90,7 +90,7 @@ export default function WordPressLoginButton({ className = '' }) {
     setStarting(true);
     try {
       // JWT가 없으면 여기서 에러를 던져 팝업 자체를 막는다.
-      const authUrl = getWPOAuthStartUrl({ requireAuth: true }); // 쿼리에 state(JWT) 포함
+      const authUrl = getWPOAuthStartUrl({ requireAuth: true }); // 쿼리에 state/token(JWT) 포함 (URL-safe)
       const w = 560;
       const h = 720;
       const y = window.top.outerHeight / 2 + window.top.screenY - h / 2;
