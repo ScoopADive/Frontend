@@ -101,7 +101,7 @@ export default function WordPressLoginButton({ className = '' }) {
       popupRef.current.location = authUrl;
     } catch (xhrErr) {
       // 4️⃣ 실패하면 백업으로 /api/wordpress/oauth/login/ 직접 오픈
-      const base = process.env.REACT_APP_API_BASE || 'https://***.com/api';
+      const base = process.env.REACT_APP_API_BASE || 'https://scoopadive.com/api';
       popupRef.current.location = `${base}/wordpress/oauth/login/`;
 
       const msg = xhrErr?.message || 'Failed to start WordPress OAuth';
