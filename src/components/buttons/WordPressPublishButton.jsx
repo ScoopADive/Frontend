@@ -13,9 +13,9 @@ function pickUrl(res) {
     res.data?.url,
     res.data?.post_url,
     res.data?.link,
-    res.data?.permalink
+    res.data?.permalink,
   ];
-  return cands.find(v => typeof v === 'string' && v.startsWith('http')) || '';
+  return cands.find((v) => typeof v === 'string' && v.startsWith('http')) || '';
 }
 
 export default function WordPressPublishButton({ logbookId, className = '', onPublished }) {
@@ -27,9 +27,10 @@ export default function WordPressPublishButton({ logbookId, className = '', onPu
   const [postUrl, setPostUrl] = useState('');
   const [resp, setResp] = useState(null);
 
-  const siteEnv = typeof import.meta !== 'undefined'
-    ? import.meta.env?.VITE_WP_SITE_URL
-    : process.env.REACT_APP_WP_SITE_URL;
+  const siteEnv =
+    typeof import.meta !== 'undefined'
+      ? import.meta.env?.VITE_WP_SITE_URL
+      : process.env.REACT_APP_WP_SITE_URL;
   const siteUrl = typeof siteEnv === 'string' ? siteEnv.replace(/\/+$/, '') : '';
 
   const checkConnection = async () => {
@@ -52,7 +53,9 @@ export default function WordPressPublishButton({ logbookId, className = '', onPu
       await checkConnection();
     })();
 
-    const onFocus = () => { if (mounted) checkConnection(); };
+    const onFocus = () => {
+      if (mounted) checkConnection();
+    };
     window.addEventListener('visibilitychange', onFocus);
     window.addEventListener('focus', onFocus);
     return () => {
@@ -99,26 +102,42 @@ export default function WordPressPublishButton({ logbookId, className = '', onPu
   }
 
   if (!connected) {
-    return <span className={`text-sm text-gray-600 ${className}`}>Connect WordPress to publish</span>;
+    return (
+      <span className={`text-sm text-gray-600 ${className}`}>Connect WordPress to publish</span>
+    );
   }
 
   const genericPostsUrl = 'https://wordpress.com/posts';
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      <button onClick={onPublish} disabled={publishing} className="rounded-lg px-4 py-2 bg-indigo-600 text-white">
+      <button
+        onClick={onPublish}
+        disabled={publishing}
+        className="rounded-lg px-4 py-2 bg-indigo-600 text-white"
+      >
         {publishing ? 'Publishing...' : 'Publish to WordPress'}
       </button>
 
       {done && !error ? (
         postUrl ? (
-          <a href={postUrl} target="_blank" rel="noreferrer" className="text-sm text-emerald-700 underline">
+          <a
+            href={postUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm text-emerald-700 underline"
+          >
             View post
           </a>
         ) : (
           <>
             {siteUrl ? (
-              <a href={`${siteUrl}/`} target="_blank" rel="noreferrer" className="text-sm text-emerald-700 underline">
+              <a
+                href={`${siteUrl}/`}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm text-emerald-700 underline"
+              >
                 Open blog
               </a>
             ) : null}
@@ -142,5 +161,5 @@ export default function WordPressPublishButton({ logbookId, className = '', onPu
 WordPressPublishButton.propTypes = {
   logbookId: PropTypes.number.isRequired,
   className: PropTypes.string,
-  onPublished: PropTypes.func
+  onPublished: PropTypes.func,
 };
