@@ -37,14 +37,17 @@ export default function WordPressLoginButton({ className = '' }) {
       const msg = ev.data;
       if (!msg || typeof msg !== 'object') return;
 
-      if (msg.type === 'WP_CODE' || msg.type === 'WP_OAUTH_DONE') {
-        // 콜백에서 토큰 저장까지 끝낸 뒤 신호가 옴 → 재확인
+      // 1) 기존 타입 기반 메시지 (WP_CODE / WP_OAUTH_DONE)
+      // 2) 백엔드 분이 제안한 { wordpressConnected: true } 형태 둘 다 수용
+      if (msg.type === 'WP_CODE' || msg.type === 'WP_OAUTH_DONE' || msg.wordpressConnected) {
         try {
           const d = await getWPTokenList();
           const ok = Array.isArray(d?.results) && d.results.length > 0;
           if (ok) {
             setConnected(true);
-            try { popupRef.current?.close?.(); } catch {}
+            try {
+              popupRef.current?.close?.();
+            } catch {}
             if (pollTimer.current) clearInterval(pollTimer.current);
           }
         } catch {
@@ -59,28 +62,65 @@ export default function WordPressLoginButton({ className = '' }) {
       mounted = false;
       window.removeEventListener('message', onMessage);
       if (pollTimer.current) clearInterval(pollTimer.current);
-      try { popupRef.current?.close?.(); } catch {}
+      try {
+        popupRef.current?.close?.();
+      } catch {}
     };
   }, []);
 
-  // 토큰 폴링 (백업 플랜)
+  // 토큰 폴링 (백업 플랜 + 팝업이 우리 사이트로 돌아오는 순간 감지해서 닫기)
   const startPolling = () => {
     if (pollTimer.current) clearInterval(pollTimer.current);
+
     pollTimer.current = setInterval(async () => {
+      const popup = popupRef.current;
+
+      // 팝업이 이미 닫혔으면 폴링 중단
+      if (!popup || popup.closed) {
+        clearInterval(pollTimer.current);
+        return;
+      }
+
+      // 1) 토큰 목록을 주기적으로 확인 → 저장되면 즉시 닫기
       try {
         const data = await getWPTokenList();
         const ok = Array.isArray(data?.results) && data.results.length > 0;
         if (ok) {
           setConnected(true);
           clearInterval(pollTimer.current);
-          try { popupRef.current?.close?.(); } catch {}
+          try {
+            popup.close();
+          } catch {}
           return;
         }
       } catch {
         // ignore
       }
-      if (popupRef.current && popupRef.current.closed) {
-        clearInterval(pollTimer.current);
+
+      // 2) 백엔드 리다이렉트로 팝업이 우리 사이트(같은 오리진)로 돌아온 순간 감지
+      try {
+        const href = popup.location.href; // cross-origin이면 여기서 에러 → catch로 감
+
+        const sameOrigin = href.startsWith(window.location.origin);
+        if (sameOrigin) {
+          // 같은 오리진으로 돌아왔다면, 토큰 여부를 한 번 더 확인 후 팝업 닫기
+          try {
+            const data = await getWPTokenList();
+            const ok = Array.isArray(data?.results) && data.results.length > 0;
+            if (ok) {
+              setConnected(true);
+            }
+          } catch {
+            // 토큰 없어도 화면만 안 보이면 되므로 무시
+          }
+
+          clearInterval(pollTimer.current);
+          try {
+            popup.close();
+          } catch {}
+        }
+      } catch {
+        // 아직 워드프레스 로그인/승인 페이지 등 cross-origin 상태 → 그냥 다음 루프까지 대기
       }
     }, 700);
   };
@@ -102,6 +142,15 @@ export default function WordPressLoginButton({ className = '' }) {
         `popup=yes,width=${w},height=${h},left=${x},top=${y}`
       );
 
+      if (!popupRef.current) {
+        // 팝업 차단된 경우
+        setError('Popup was blocked. Please allow popups for this site.');
+        setStarting(false);
+        return;
+      }
+
+      popupRef.current.focus?.();
+
       // 백업용 폴링 (postMessage가 오지 못하는 환경 대비)
       startPolling();
     } catch (e) {
@@ -121,7 +170,7 @@ export default function WordPressLoginButton({ className = '' }) {
       await saveWPToken({
         access_token: manualToken.trim(),
         refresh_token: manualRefresh.trim(),
-        expires_at: null
+        expires_at: null,
       });
       const data = await getWPTokenList();
       const ok = Array.isArray(data?.results) && data.results.length > 0;
@@ -140,7 +189,10 @@ export default function WordPressLoginButton({ className = '' }) {
 
   if (loading) {
     return (
-      <button className={`rounded-lg px-4 py-2 bg-gray-200 text-gray-700 ${className}`} disabled>
+      <button
+        className={`rounded-lg px-4 py-2 bg-gray-200 text-gray-700 ${className}`}
+        disabled
+      >
         Checking WordPress...
       </button>
     );
@@ -148,7 +200,9 @@ export default function WordPressLoginButton({ className = '' }) {
 
   if (connected) {
     return (
-      <span className={`inline-flex items-center rounded-lg px-3 py-2 bg-emerald-100 text-emerald-700 text-sm ${className}`}>
+      <span
+        className={`inline-flex items-center rounded-lg px-3 py-2 bg-emerald-100 text-emerald-700 text-sm ${className}`}
+      >
         WordPress connected
       </span>
     );
@@ -156,10 +210,17 @@ export default function WordPressLoginButton({ className = '' }) {
 
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <button onClick={handleClick} disabled={starting} className="rounded-lg px-4 py-2 bg-gray-900 text-white">
+      <button
+        onClick={handleClick}
+        disabled={starting}
+        className="rounded-lg px-4 py-2 bg-gray-900 text-white"
+      >
         {starting ? 'Connecting...' : 'Connect WordPress'}
       </button>
-      <button onClick={() => setManualOpen(true)} className="rounded-lg px-3 py-2 border text-sm">
+      <button
+        onClick={() => setManualOpen(true)}
+        className="rounded-lg px-3 py-2 border text-sm"
+      >
         Enter token
       </button>
       {error ? <span className="text-xs text-red-600">{error}</span> : null}
@@ -170,21 +231,27 @@ export default function WordPressLoginButton({ className = '' }) {
             <div className="text-base font-semibold">Paste access token</div>
             <input
               value={manualToken}
-              onChange={e => setManualToken(e.target.value)}
+              onChange={(e) => setManualToken(e.target.value)}
               placeholder="access_token"
               className="w-full border rounded-lg px-3 py-2"
             />
             <input
               value={manualRefresh}
-              onChange={e => setManualRefresh(e.target.value)}
+              onChange={(e) => setManualRefresh(e.target.value)}
               placeholder="refresh_token (optional)"
               className="w-full border rounded-lg px-3 py-2"
             />
             <div className="flex items-center justify-end gap-2 pt-1">
-              <button onClick={() => setManualOpen(false)} className="border rounded-lg px-3 py-2">
+              <button
+                onClick={() => setManualOpen(false)}
+                className="border rounded-lg px-3 py-2"
+              >
                 Cancel
               </button>
-              <button onClick={handleManualSave} className="bg-indigo-600 text-white rounded-lg px-4 py-2">
+              <button
+                onClick={handleManualSave}
+                className="bg-indigo-600 text-white rounded-lg px-4 py-2"
+              >
                 Save
               </button>
             </div>
@@ -196,5 +263,5 @@ export default function WordPressLoginButton({ className = '' }) {
 }
 
 WordPressLoginButton.propTypes = {
-  className: PropTypes.string
+  className: PropTypes.string,
 };
