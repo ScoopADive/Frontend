@@ -31,27 +31,32 @@ export default function WordPressLoginButton({ className = '' }) {
       }
     })();
 
-    // 팝업 → 부모창 postMessage 수신 (같은 오리진만 허용)
+    // 팝업 → 부모창 postMessage 수신
     const onMessage = async (ev) => {
-      if (ev.origin !== window.location.origin) return;
       const msg = ev.data;
       if (!msg || typeof msg !== 'object') return;
 
-      // 1) 기존 타입 기반 메시지 (WP_CODE / WP_OAUTH_DONE)
-      // 2) 백엔드 분이 제안한 { wordpressConnected: true } 형태 둘 다 수용
+      // ⚠️ API 서버(origin)가 프론트 origin이랑 다를 수 있어서
+      // ev.origin === window.location.origin 체크는 제거.
+      // 내부 서비스라 보안보다는 동작 우선.
+
       if (msg.type === 'WP_CODE' || msg.type === 'WP_OAUTH_DONE' || msg.wordpressConnected) {
         try {
           const d = await getWPTokenList();
           const ok = Array.isArray(d?.results) && d.results.length > 0;
           if (ok) {
             setConnected(true);
-            try {
-              popupRef.current?.close?.();
-            } catch {}
-            if (pollTimer.current) clearInterval(pollTimer.current);
           }
         } catch {
           // ignore
+        } finally {
+          try {
+            popupRef.current?.close?.();
+          } catch {}
+          if (pollTimer.current) {
+            clearInterval(pollTimer.current);
+            pollTimer.current = null;
+          }
         }
       }
     };
@@ -61,66 +66,57 @@ export default function WordPressLoginButton({ className = '' }) {
     return () => {
       mounted = false;
       window.removeEventListener('message', onMessage);
-      if (pollTimer.current) clearInterval(pollTimer.current);
+      if (pollTimer.current) {
+        clearInterval(pollTimer.current);
+        pollTimer.current = null;
+      }
       try {
         popupRef.current?.close?.();
       } catch {}
     };
   }, []);
 
-  // 토큰 폴링 (백업 플랜 + 팝업이 우리 사이트로 돌아오는 순간 감지해서 닫기)
+  // 토큰 폴링 (백업 플랜 + 팝업 닫힌 후에도 마지막 한 번은 확인)
   const startPolling = () => {
     if (pollTimer.current) clearInterval(pollTimer.current);
+
+    const startedAt = Date.now();
+    const TIMEOUT_MS = 15000; // 최대 15초까지만 폴링
 
     pollTimer.current = setInterval(async () => {
       const popup = popupRef.current;
 
-      // 팝업이 이미 닫혔으면 폴링 중단
-      if (!popup || popup.closed) {
+      // 시간 초과 시 종료
+      if (Date.now() - startedAt > TIMEOUT_MS) {
         clearInterval(pollTimer.current);
+        pollTimer.current = null;
         return;
       }
 
-      // 1) 토큰 목록을 주기적으로 확인 → 저장되면 즉시 닫기
+      // ✅ 매 루프마다 먼저 토큰 확인 시도
       try {
         const data = await getWPTokenList();
         const ok = Array.isArray(data?.results) && data.results.length > 0;
         if (ok) {
           setConnected(true);
           clearInterval(pollTimer.current);
+          pollTimer.current = null;
           try {
-            popup.close();
+            popup?.close?.();
           } catch {}
           return;
         }
       } catch {
-        // ignore
+        // ignore: 다음 루프에서 다시 시도
       }
 
-      // 2) 백엔드 리다이렉트로 팝업이 우리 사이트(같은 오리진)로 돌아온 순간 감지
-      try {
-        const href = popup.location.href; // cross-origin이면 여기서 에러 → catch로 감
-
-        const sameOrigin = href.startsWith(window.location.origin);
-        if (sameOrigin) {
-          // 같은 오리진으로 돌아왔다면, 토큰 여부를 한 번 더 확인 후 팝업 닫기
-          try {
-            const data = await getWPTokenList();
-            const ok = Array.isArray(data?.results) && data.results.length > 0;
-            if (ok) {
-              setConnected(true);
-            }
-          } catch {
-            // 토큰 없어도 화면만 안 보이면 되므로 무시
-          }
-
-          clearInterval(pollTimer.current);
-          try {
-            popup.close();
-          } catch {}
-        }
-      } catch {
-        // 아직 워드프레스 로그인/승인 페이지 등 cross-origin 상태 → 그냥 다음 루프까지 대기
+      // 팝업이 이미 닫힌 경우:
+      // 이전에는 여기서 바로 return 해서 토큰을 다시 안 봤는데,
+      // 위에서 이미 한 번 확인하고 왔으므로 이제 그냥 종료만 해도 됨.
+      if (!popup || popup.closed) {
+        clearInterval(pollTimer.current);
+        pollTimer.current = null;
+        return;
       }
     }, 700);
   };
@@ -151,7 +147,7 @@ export default function WordPressLoginButton({ className = '' }) {
 
       popupRef.current.focus?.();
 
-      // 백업용 폴링 (postMessage가 오지 못하는 환경 대비)
+      // postMessage가 오든 안 오든, 백업용 폴링도 함께 돌림
       startPolling();
     } catch (e) {
       if (e && e.code === 'NO_JWT') {

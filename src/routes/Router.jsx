@@ -1,3 +1,4 @@
+// src/router/AppRouter.jsx
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from '../components/layout/Navbar';
 import LandingPage from '../pages/LandingPage';
@@ -19,6 +20,9 @@ import TrainingPage from '../pages/TrainingPage';
 import JobDetailPage from '../pages/JobDetailPage';
 import { UsersProvider } from '../context/UsersContext';
 
+// 🔹 새로 추가: 설문조사 페이지
+import PreferencesSurveyPage from '../pages/PreferencesSurveyPage';
+
 export default function AppRouter() {
   return (
     <UsersProvider>
@@ -30,8 +34,16 @@ export default function AppRouter() {
           <Route path="/training" element={<TrainingPage />} />
           <Route path="/signin" element={<SignInPage />} />
           <Route path="/signup" element={<SignUpPage />} />
-          <Route path={AUTH_ROUTES.FORGOT_PASSWORD} element={<ForgotPasswordPage />} />
-          <Route path="/oauth2/redirect" element={<OAuth2RedirectHandler />} />
+          <Route
+            path={AUTH_ROUTES.FORGOT_PASSWORD}
+            element={<ForgotPasswordPage />}
+          />
+          <Route
+            path="/oauth2/redirect"
+            element={<OAuth2RedirectHandler />}
+          />
+
+          {/* 기본 세팅 페이지 */}
           <Route
             path="/settings"
             element={
@@ -40,6 +52,17 @@ export default function AppRouter() {
               </ProtectedRoute>
             }
           />
+
+          {/* 🔹 설문조사(Preferences) 페이지 */}
+          <Route
+            path="/settings/preferences"
+            element={
+              <ProtectedRoute>
+                <PreferencesSurveyPage />
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             path="/help"
             element={
@@ -48,7 +71,9 @@ export default function AppRouter() {
               </ProtectedRoute>
             }
           />
+
           <Route path="/logs" element={<AllLogsPage />} />
+
           <Route
             path="/log/new"
             element={
@@ -57,6 +82,7 @@ export default function AppRouter() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/log/:id"
             element={
@@ -65,6 +91,7 @@ export default function AppRouter() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/mypage"
             element={
@@ -73,6 +100,7 @@ export default function AppRouter() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/user/:username"
             element={
@@ -81,6 +109,7 @@ export default function AppRouter() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/chat/:username"
             element={
@@ -89,6 +118,7 @@ export default function AppRouter() {
               </ProtectedRoute>
             }
           />
+
           <Route path="/home/jobs/:id" element={<JobDetailPage />} />
         </Routes>
       </Router>

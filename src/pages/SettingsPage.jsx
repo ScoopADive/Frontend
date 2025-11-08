@@ -1,45 +1,129 @@
-import { useEffect, useState } from "react";
-import Layout from "../components/layout/Layout";
+// src/pages/SettingsPage.jsx
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import Layout from '../components/layout/Layout';
+import { fetchMyPreferences } from '../api/preferences';
 
 const SettingsPage = () => {
-  const [language, setLanguage] = useState("ko");
-  const [theme, setTheme] = useState("light");
+  const [language, setLanguage] = useState('ko');
+  const [theme, setTheme] = useState('light');
   const [notifications, setNotifications] = useState(true);
-  const [email] = useState("rim@gmail.com"); // 예시 이메일, 실제로는 로그인한 사용자 정보에서 가져와야 함
+  const [email] = useState('rim@gmail.com'); // TODO: replace with real user email
 
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPasswords, setShowPasswords] = useState(false);
 
+  const [prefs, setPrefs] = useState(null);
+  const [prefsLoading, setPrefsLoading] = useState(true);
+
+  // load local UI settings (for now, still localStorage)
   useEffect(() => {
-    const saved = JSON.parse(localStorage.getItem("user_settings"));
+    const saved = JSON.parse(localStorage.getItem('user_settings'));
     if (saved) {
-      setLanguage(saved.language || "ko");
-      setTheme(saved.theme || "light");
-      setNotifications(saved.notifications || true);
+      setLanguage(saved.language || 'ko');
+      setTheme(saved.theme || 'light');
+      setNotifications(
+        typeof saved.notifications === 'boolean' ? saved.notifications : true
+      );
     }
+  }, []);
+
+  // load preferences summary from backend
+  useEffect(() => {
+    const loadPrefs = async () => {
+      try {
+        const data = await fetchMyPreferences();
+        setPrefs(data);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setPrefsLoading(false);
+      }
+    };
+    loadPrefs();
   }, []);
 
   const handleSave = () => {
     const payload = { language, theme, notifications };
-    localStorage.setItem("user_settings", JSON.stringify(payload));
-    alert("✅ 설정이 저장되었습니다!");
+    localStorage.setItem('user_settings', JSON.stringify(payload));
+    alert('Settings have been saved.');
   };
 
   const handleDeleteAccount = () => {
-    const confirm = window.confirm("정말로 회원 탈퇴하시겠습니까? 이 작업은 되돌릴 수 없습니다.");
-    if (confirm) {
-      alert("탈퇴 처리되었습니다.");
+    const confirmDelete = window.confirm(
+      'Are you sure you want to delete your account? This cannot be undone.'
+    );
+    if (confirmDelete) {
+      alert('Account deletion is not implemented yet.');
     }
   };
+
+  const passwordType = showPasswords ? 'text' : 'password';
 
   return (
     <Layout>
       <div className="max-w-4xl mx-auto px-4 py-10 space-y-6">
         <h1 className="text-2xl font-bold text-gray-800">Settings</h1>
 
-        {/* 계정 이메일 */}
+        {/* Preferences summary */}
+        <div className="bg-white shadow-md rounded-xl p-6 space-y-3 border border-gray-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-800">
+              Dive Preferences
+            </h2>
+            <Link
+              to="/settings/preferences"
+              className="inline-flex items-center px-3 py-1.5 rounded-md border border-gray-200 text-xs font-semibold text-slate-800 hover:bg-gray-50"
+            >
+              Edit survey
+            </Link>
+          </div>
+          {prefsLoading ? (
+            <p className="text-sm text-gray-500">Loading your preferences...</p>
+          ) : !prefs ? (
+            <p className="text-sm text-gray-500">
+              You haven&apos;t filled out the survey yet. Take the survey to get
+              personalized dive spot recommendations on your home page.
+            </p>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-3 text-sm text-gray-700">
+              <div>
+                <p>
+                  <span className="font-medium">Residence:</span>{' '}
+                  {prefs.residence || '-'}
+                </p>
+                <p>
+                  <span className="font-medium">Preferred diving:</span>{' '}
+                  {prefs.preferred_diving || '-'}
+                </p>
+                <p>
+                  <span className="font-medium">Preferred depth:</span>{' '}
+                  {prefs.preferred_depth_range || '-'}
+                </p>
+              </div>
+              <div>
+                <p>
+                  <span className="font-medium">Budget:</span>{' '}
+                  {prefs.budget_min || prefs.budget_max
+                    ? `${prefs.budget_min || '?'} - ${prefs.budget_max || '?'}`
+                    : '-'}
+                </p>
+                <p>
+                  <span className="font-medium">Atmosphere:</span>{' '}
+                  {prefs.preferred_atmosphere || '-'}
+                </p>
+                <p>
+                  <span className="font-medium">Activities:</span>{' '}
+                  {prefs.preferred_activities || '-'}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Account email */}
         <div className="bg-white shadow-md rounded-xl p-6 space-y-2">
           <h2 className="text-lg font-semibold text-gray-700 mb-2">Account</h2>
           <label className="text-gray-600 text-sm">Email</label>
@@ -51,108 +135,128 @@ const SettingsPage = () => {
           />
         </div>
 
-        {/* 비밀번호 변경 */}
+        {/* Password change */}
         <div className="bg-white shadow-md rounded-xl p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-700 mb-2">Password</h2>
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-gray-700 mb-2">
+              Password
+            </h2>
+            <label className="flex items-center gap-1 text-xs text-gray-500">
+              <input
+                type="checkbox"
+                className="rounded border-gray-300"
+                checked={showPasswords}
+                onChange={(e) => setShowPasswords(e.target.checked)}
+              />
+              Show passwords
+            </label>
+          </div>
 
-          {/* 기존 비밀번호 입력 */}
           <input
-            type="password"
-            placeholder="Current Password"
+            type={passwordType}
+            placeholder="Current password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
-            className="w-full border p-2 rounded"
+            className="w-full border p-2 rounded text-sm"
           />
 
-          {/* 새 비밀번호 입력 + 안내 문구 */}
           <div>
             <input
-              type="password"
+              type={passwordType}
               placeholder="Enter new password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full border p-2 rounded"
+              className="w-full border p-2 rounded text-sm"
             />
             <p className="text-sm text-gray-500 mt-1">
-              Password must contain at least one uppercase and lowercase letter, and be at least 6 characters long.
+              Password must contain at least one uppercase and lowercase letter,
+              and be at least 6 characters long.
             </p>
           </div>
 
-          {/* 새 비밀번호 재입력 */}
           <input
-            type="password"
+            type={passwordType}
             placeholder="Confirm new password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full border p-2 rounded"
+            className="w-full border p-2 rounded text-sm"
           />
 
-          {/* 업데이트 버튼 (조건 충족 시 활성화) */}
           <div className="pt-2">
             <button
               type="button"
               disabled={
-                !currentPassword || !newPassword || newPassword !== confirmPassword
+                !currentPassword ||
+                !newPassword ||
+                newPassword !== confirmPassword
               }
               className={`w-full py-2 rounded font-semibold ${
-                currentPassword && newPassword && newPassword === confirmPassword
-                  ? "bg-blue-600 text-white hover:bg-blue-700"
-                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                currentPassword &&
+                newPassword &&
+                newPassword === confirmPassword
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
               }`}
             >
-              Update
+              Update password
             </button>
           </div>
         </div>
 
-        {/* 언어 설정 */}
+        {/* Language */}
         <div className="bg-white shadow-md rounded-xl p-6 space-y-4">
           <h2 className="text-lg font-semibold text-gray-700 mb-2">Language</h2>
           <div className="flex items-center justify-between">
-            <label className="text-gray-600 font-medium">Interface Language</label>
+            <label className="text-gray-600 font-medium">
+              Interface language
+            </label>
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              className="border p-2 rounded w-40"
+              className="border p-2 rounded w-40 text-sm"
             >
-              <option value="ko">한국어</option>
+              <option value="ko">Korean</option>
               <option value="en">English</option>
             </select>
           </div>
         </div>
 
-        {/* 테마 설정 */}
+        {/* Theme */}
         <div className="bg-white shadow-md rounded-xl p-6 space-y-4">
           <h2 className="text-lg font-semibold text-gray-700 mb-2">Theme</h2>
           <div className="flex gap-4">
             <button
-              onClick={() => setTheme("light")}
+              onClick={() => setTheme('light')}
               className={`flex-1 p-3 rounded text-sm font-medium border ${
-                theme === "light"
-                  ? "bg-gray-100 border-gray-400"
-                  : "bg-white border-gray-200"
+                theme === 'light'
+                  ? 'bg-gray-100 border-gray-400'
+                  : 'bg-white border-gray-200'
               }`}
             >
-              ☀️ Light
+              Light
             </button>
             <button
-              onClick={() => setTheme("dark")}
+              onClick={() => setTheme('dark')}
               className={`flex-1 p-3 rounded text-sm font-medium border ${
-                theme === "dark"
-                  ? "bg-gray-800 text-white border-gray-600"
-                  : "bg-white border-gray-200"
+                theme === 'dark'
+                  ? 'bg-gray-800 text-white border-gray-600'
+                  : 'bg-white border-gray-200'
               }`}
             >
-              🌙 Dark
+              Dark
             </button>
           </div>
         </div>
 
-        {/* 알림 설정 */}
+        {/* Notifications */}
         <div className="bg-white shadow-md rounded-xl p-6 space-y-4">
-          <h2 className="text-lg font-semibold text-gray-700 mb-2">Email Notifications</h2>
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">
+            Email notifications
+          </h2>
           <div className="flex items-center justify-between">
-            <span className="text-gray-600 font-medium">Receive Email Alerts</span>
+            <span className="text-gray-600 font-medium text-sm">
+              Receive email alerts
+            </span>
             <label className="relative inline-flex items-center cursor-pointer">
               <input
                 type="checkbox"
@@ -166,27 +270,30 @@ const SettingsPage = () => {
           </div>
         </div>
 
-        {/* 저장 버튼 */}
+        {/* Save button */}
         <div className="text-right">
           <button
             onClick={handleSave}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded"
           >
-            Save Settings
+            Save settings
           </button>
         </div>
 
-        {/* 회원 탈퇴 */}
+        {/* Account deletion */}
         <div className="bg-gray-50 border border-red-200 rounded-xl p-6 mt-6">
-          <h2 className="text-lg font-semibold text-red-600 mb-2">회원 탈퇴</h2>
+          <h2 className="text-lg font-semibold text-red-600 mb-2">
+            Delete account
+          </h2>
           <p className="text-sm text-gray-600 mb-4">
-            탈퇴 시 작성하신 게시물 및 댓글은 모두 삭제되며 복구되지 않습니다.
+            All your logs and posts will be permanently removed. This action
+            cannot be undone.
           </p>
           <button
             onClick={handleDeleteAccount}
             className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-6 rounded"
           >
-            회원 탈퇴
+            Delete account
           </button>
         </div>
       </div>
