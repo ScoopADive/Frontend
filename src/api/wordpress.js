@@ -1,12 +1,27 @@
 // src/api/wordpress.js
 import api from './axios';
 
-/** 토큰 목록 조회 (pagination/array 모두 호환) */
+/** 토큰 목록 조회 (pagination/array/single-object 모두 호환) */
 export async function getWPTokenList() {
   const r = await api.get('/wordpress/wordpress-tokens/');
   const d = r?.data;
-  if (Array.isArray(d)) return { results: d };
-  if (Array.isArray(d?.results)) return d;
+
+  // 1) 응답이 배열인 경우: [ {...}, {...} ]
+  if (Array.isArray(d)) {
+    return { results: d };
+  }
+
+  // 2) 응답이 { results: [...] } 형태인 경우 (DRF pagination)
+  if (d && Array.isArray(d.results)) {
+    return { results: d.results };
+  }
+
+  // 3) 응답이 단일 객체인 경우: { id: 5, user: 1, ... }
+  if (d && typeof d === 'object') {
+    return { results: [d] };
+  }
+
+  // 4) 그 외에는 빈 배열
   return { results: [] };
 }
 
@@ -57,7 +72,7 @@ function urlSafe(str) {
 
 /**
  * OAuth 시작 URL(=우리 백엔드 엔드포인트)을 만들어 반환한다.
- * 핵심: JWT를 URL-safe로 인코딩해 **state와 token 둘 다**에 담아 백엔드가 어떤 이름을 기대하든 인증되도록 한다.
+ * 핵심: JWT를 URL-safe로 인코딩해 state와 token 둘 다에 담는다.
  * 절대 fetch/XHR 금지. 이 URL을 window.open()에 직접 넣어 팝업 네비게이션만 발생시킨다.
  *
  * @param {object} opts
@@ -94,7 +109,6 @@ export function getWPOAuthStartUrl(opts = { requireAuth: true }) {
   }
 
   if (requireAuth && !looksLikeJWT(jwt)) {
-    // 로그인 상태가 아니라면 팝업을 열어도 콜백에서 401이 날 뿐이므로 중단
     const err = new Error('NO_JWT');
     err.code = 'NO_JWT';
     throw err;
@@ -105,9 +119,8 @@ export function getWPOAuthStartUrl(opts = { requireAuth: true }) {
   const startUrl = new URL(start, window.location.origin);
 
   if (looksLikeJWT(jwt)) {
-    // ✅ 인코딩 적용: 워드프레스 authorize까지 안전하게 전달되도록 보장
     const jwtSafe = urlSafe(jwt);
-    // 양쪽 호환: WP 표준(state) + 기존 백엔드(token) 모두 전달
+    // WP 표준(state) + 기존 백엔드(token) 모두 전달
     startUrl.searchParams.set('state', jwtSafe);
     startUrl.searchParams.set('token', jwtSafe);
   }
