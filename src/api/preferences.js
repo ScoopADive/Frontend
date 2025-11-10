@@ -3,8 +3,10 @@ import api from './axios';
 
 /**
  * GET /settings/preferences/
- * - 백엔드에서 리스트를 돌려줄 수도 있으니
- *   첫 번째 객체만 사용하도록 방어적으로 처리
+ * - 응답이
+ *   1) 배열  [ {...}, {...} ]
+ *   2) { results: [ {...}, ... ] }
+ *   둘 다 올 수 있다고 보고 첫 번째 객체만 반환
  */
 export async function fetchMyPreferences() {
   try {
@@ -13,11 +15,19 @@ export async function fetchMyPreferences() {
 
     if (!data) return null;
 
+    // 1) 그냥 배열로 오는 경우
     if (Array.isArray(data)) {
       if (data.length === 0) return null;
       return data[0];
     }
 
+    // 2) { results: [...] } 형태인 경우
+    if (Array.isArray(data.results)) {
+      if (data.results.length === 0) return null;
+      return data.results[0];
+    }
+
+    // 3) 단일 객체로 오는 경우
     return data;
   } catch (err) {
     if (err.response && err.response.status === 404) {
@@ -42,10 +52,8 @@ export async function updatePreferences(id, payload) {
 }
 
 /**
- * 설문 upsert 헬퍼
- * - 기존 preferences가 있으면 PUT
- * - 없으면 POST
- * - 호출하는 쪽에서 id를 모를 때 편하게 사용
+ * (옵션) 설문 upsert 헬퍼
+ * - 다른 곳에서 쓸 수도 있으니 남겨둠
  */
 export async function upsertPreferences(payload) {
   const existing = await fetchMyPreferences();

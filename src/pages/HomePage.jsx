@@ -92,9 +92,9 @@ function HomePage() {
     []
   );
 
-  // ✅ Beginner 섹션 기본 후보 (AI 없을 때 fallback)
+  // ✅ Beginner 섹션 기본 후보 (AI 없을 때 fallback) - 최대 3개
   const beginnerPicks = useMemo(
-    () => DUMMY_SPOTS.filter((s) => s.skills.includes('Beginner')).slice(0, 4),
+    () => DUMMY_SPOTS.filter((s) => s.skills.includes('Beginner')).slice(0, 3),
     [DUMMY_SPOTS]
   );
 
@@ -115,20 +115,16 @@ function HomePage() {
   );
 
   // --- AI recommendations: normalize for SpotCard ---
+  // 백엔드 응답: { id, region, country, intro, created_at, user }
   const personalizedSpots = useMemo(
     () =>
       (aiSpots || []).map((s, index) => ({
         id: s.id ?? index,
-        name: s.name || s.spot_name || s.title || 'Recommended spot',
-        country: s.country || s.region || '',
-        highlight: s.highlight || s.description || s.summary || '',
-        seasons:
-          s.seasons ||
-          s.best_seasons ||
-          [], // optional - backend 필드명에 맞춰 조정 가능
-        skills:
-          s.skills ||
-          (s.level ? [s.level] : []), // optional
+        name: s.region || s.name || s.spot_name || s.title || 'Recommended spot',
+        country: s.country || '',
+        highlight: s.intro || s.highlight || s.description || s.summary || '',
+        seasons: [],
+        skills: [],
       })),
     [aiSpots]
   );
@@ -266,10 +262,10 @@ function HomePage() {
 
   if (loading) return <p className="text-center mt-8">Loading...</p>;
 
-  // 최종적으로 추천 카드에 사용할 리스트 (AI 우선, 없으면 beginnerPicks)
+  // ✅ 최종 추천 리스트도 최대 3개 (AI 우선, 없으면 beginnerPicks)
   const recommendedSpots =
     personalizedSpots.length > 0
-      ? personalizedSpots.slice(0, 4)
+      ? personalizedSpots.slice(0, 3)
       : beginnerPicks;
 
   const usingAi = !aiLoading && personalizedSpots.length > 0;
@@ -419,7 +415,7 @@ function HomePage() {
             </div>
           </div>
 
-          <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {recommendedSpots.map((s) => (
               <SpotCard key={s.id} spot={s} tagColor="blue" />
             ))}
@@ -815,35 +811,6 @@ function HomePage() {
               Refresh with AI
             </button>
           </div>
-        </div>
-      </section>
-
-      {/* --- Safety Reminders --- */}
-      <section className="mt-8">
-        <div className="rounded-lg bg-white border border-gray-200 hover:border-gray-300 shadow-sm hover:shadow-md transition p-6">
-          <h3 className="text-lg md:text-xl font-bold text-slate-900">
-            Safety Reminders
-          </h3>
-          <p className="text-slate-600 text-[14px] mt-1">
-            Quick checklist before your next dive.
-          </p>
-          <ul className="mt-4 grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {[
-              'Buddy check: air, weights, releases, BCD, final OK',
-              'Plan your dive & dive your plan',
-              'Watch no-deco time and ascent rate',
-              'Stay hydrated; rest between dives',
-              'Surface marker buoy (SMB) ready',
-              'If stressed: pause, breathe, signal',
-            ].map((txt, i) => (
-              <li
-                key={i}
-                className="rounded-md border border-gray-200 bg-gray-50 p-3 text-[13px] text-slate-700"
-              >
-                {txt}
-              </li>
-            ))}
-          </ul>
         </div>
       </section>
 

@@ -2,11 +2,11 @@
 import api from './axios';
 
 /**
- * POST /ai/
- * - 백엔드에 "지금 preferences 기준으로 AI 추천 다시 만들어줘"라고 요청
+ * PUT /ai/
+ * - 백엔드에 "지금 preferences 기준으로 AI 추천 다시 만들어줘" 라고 요청
  */
 export async function triggerAiUpdate() {
-  const res = await api.post('/ai/');
+  const res = await api.put('/ai/');
   return res.data;
 }
 

@@ -8,6 +8,7 @@ import authService from '../services/authService';
 import useUserStore from '../store/userStore';
 import { handleFormChange, getErrorMessage } from '../utils/formUtil';
 import { AUTH_ROUTES, AUTH_LABELS } from '../constants';
+import { fetchMyPreferences } from '../api/preferences'; // 🔹 추가
 
 function SignInPage() {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -23,11 +24,36 @@ function SignInPage() {
     setError('');
     try {
       const data = await authService.signin(form.email, form.password);
+
+      // 로그인 성공 후 기본 정보 저장
       localStorage.setItem('email', data.email);
       localStorage.setItem('name', data.name);
       localStorage.setItem('id', data.id);
       setUser({ id: data.id, email: data.email, name: data.name });
-      navigate(AUTH_ROUTES.HOME);
+
+      // 🔹 로그인 후 설문/플래그 확인
+      let prefs = null;
+      try {
+        prefs = await fetchMyPreferences();
+      } catch (err) {
+        console.error('failed to load preferences after login', err);
+      }
+
+      let neverShow = false;
+      try {
+        neverShow = localStorage.getItem('survey_never_show') === '1';
+      } catch (err) {
+        console.error('failed to read survey_never_show', err);
+      }
+
+      // 1) 설문 객체가 없고
+      // 2) "다시 보지 않기"도 안 눌렀으면 → 설문 페이지로
+      if (!prefs && !neverShow) {
+        navigate('/settings/preferences', { replace: true });
+      } else {
+        // 그 외에는 원래 홈으로
+        navigate(AUTH_ROUTES.HOME);
+      }
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -39,13 +65,16 @@ function SignInPage() {
     if (googleLoading) return;
     setGoogleLoading(true);
     setError('');
-    window.location.href = 'https://scoopadive.com/api/accounts/google/login/';
+    window.location.href =
+      'https://scoopadive.com/api/accounts/google/login/';
   };
 
   return (
     <Layout>
       <div className="max-w-md mx-auto mt-12 bg-white p-6 rounded-xl shadow-md space-y-4">
-        <h1 className="text-2xl font-bold text-center text-blue-600">{AUTH_LABELS.SIGN_IN}</h1>
+        <h1 className="text-2xl font-bold text-center text-blue-600">
+          {AUTH_LABELS.SIGN_IN}
+        </h1>
 
         <Input
           label={AUTH_LABELS.EMAIL}
@@ -67,19 +96,26 @@ function SignInPage() {
           disabled={loading || googleLoading}
         />
 
-        {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+        {error && (
+          <p className="text-sm text-red-500 text-center">{error}</p>
+        )}
 
         <button
           onClick={handleGoogleLogin}
           className="w-full py-2 px-4 border rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition disabled:opacity-60"
           disabled={googleLoading || loading}
         >
-          {googleLoading ? 'Signing in with Google...' : AUTH_LABELS.CONTINUE_WITH_GOOGLE}
+          {googleLoading
+            ? 'Signing in with Google...'
+            : AUTH_LABELS.CONTINUE_WITH_GOOGLE}
         </button>
 
         <div className="text-sm text-center text-gray-500">
           비밀번호를 잊으셨나요?{' '}
-          <Link to="/forgot-password" className="text-blue-600 hover:underline">
+          <Link
+            to="/forgot-password"
+            className="text-blue-600 hover:underline"
+          >
             비밀번호 재설정
           </Link>
         </div>

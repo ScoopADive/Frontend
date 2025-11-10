@@ -9,11 +9,14 @@ export const STORAGE_KEYS = {
   ID: 'id',
 };
 
+// 모든 axios 요청에 쿠키를 포함
+axios.defaults.withCredentials = true;
+
 // 단일 Axios 인스턴스
 const API = axios.create({
   baseURL: 'https://scoopadive.com/api',
   headers: { Accept: 'application/json' },
-  withCredentials: false, // 쿠키를 쓰지 않고 로컬스토리지 토큰 전략
+  withCredentials: true,
 });
 
 // base64url 안전 디코딩
@@ -100,7 +103,11 @@ function processQueue(error, newAccess) {
 async function tryRefreshOnce() {
   const refresh = getRefresh();
   if (!refresh) throw new Error('No refresh token');
-  const res = await axios.post('https://scoopadive.com/api/auths/token/refresh/', { refresh });
+  const res = await axios.post(
+    'https://scoopadive.com/api/auths/token/refresh/',
+    { refresh },
+    { withCredentials: true }
+  );
   const { access, refresh: newRefresh } = res.data || {};
   if (!access) throw new Error('No access in refresh response');
   setAccess(access);

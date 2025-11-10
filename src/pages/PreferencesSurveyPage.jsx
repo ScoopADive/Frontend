@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/layout/Layout';
 import {
   fetchMyPreferences,
-  upsertPreferences,
+  createPreferences,
+  updatePreferences,
 } from '../api/preferences';
 import { triggerAiUpdate } from '../api/ai';
 
@@ -27,6 +28,8 @@ function PreferencesSurveyPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [prefId, setPrefId] = useState(null); // 기존 설문 id
+  const [skipModalOpen, setSkipModalOpen] = useState(false); // 스킵 모달
   const navigate = useNavigate();
 
   // 기존 설문 있으면 불러와서 폼에 채우기
@@ -35,6 +38,7 @@ function PreferencesSurveyPage() {
       try {
         const prefs = await fetchMyPreferences();
         if (prefs) {
+          setPrefId(prefs.id || null);
           setForm((prev) => ({
             ...prev,
             birthday: prefs.birthday || '',
@@ -71,20 +75,44 @@ function PreferencesSurveyPage() {
     setError('');
 
     try {
-      // 1) preferences 저장 (POST or PUT)
-      await upsertPreferences(form);
+      // 1) preferences 저장 (prefId 있으면 PUT, 없으면 POST)
+      if (prefId) {
+        await updatePreferences(prefId, form);
+      } else {
+        const created = await createPreferences(form);
+        if (created && created.id) {
+          setPrefId(created.id);
+        }
+      }
 
-      // 2) AI 추천 재생성
+      // 2) AI 추천 재생성 (백엔드에서 PUT /ai/ 처리하도록 triggerAiUpdate 구현해둔 상태라고 가정)
       await triggerAiUpdate();
 
-      // 3) 홈으로 이동 (추천이 반영된 상태)
-      navigate('/');
+      // 3) 홈으로 이동
+      navigate('/home');
     } catch (err) {
       console.error('❌ Failed to save preferences or update AI:', err);
       setError('Failed to save your preferences. Please try again.');
     } finally {
       setSaving(false);
     }
+  };
+
+  // 스킵: 이번만
+  const handleSkipOnce = () => {
+    setSkipModalOpen(false);
+    navigate('/home');
+  };
+
+  // 스킵: 다시 보지 않기 (localStorage 플래그)
+  const handleSkipForever = () => {
+    try {
+      localStorage.setItem('survey_never_show', '1');
+    } catch (e) {
+      console.error('failed to store survey_never_show', e);
+    }
+    setSkipModalOpen(false);
+    navigate('/home');
   };
 
   if (loading) {
@@ -100,13 +128,26 @@ function PreferencesSurveyPage() {
   return (
     <Layout>
       <div className="max-w-3xl mx-auto px-4 py-10">
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
-          Dive Preferences Survey
-        </h1>
-        <p className="mt-2 text-sm md:text-base text-slate-600">
-          Tell us how and where you like to dive. We&apos;ll use this to
-          personalize recommended spots on your home page.
-        </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
+              Dive Preferences Survey
+            </h1>
+            <p className="mt-2 text-sm md:text-base text-slate-600">
+              Tell us how and where you like to dive. We&apos;ll use this to
+              personalize recommended spots on your home page.
+            </p>
+          </div>
+
+          {/* 🔹 설문 스킵 버튼 */}
+          <button
+            type="button"
+            onClick={() => setSkipModalOpen(true)}
+            className="mt-1 inline-flex items-center rounded-md border border-gray-300 px-3 py-1.5 text-xs md:text-sm font-semibold text-slate-700 hover:bg-gray-50"
+          >
+            Skip survey
+          </button>
+        </div>
 
         <form
           onSubmit={handleSubmit}
@@ -305,6 +346,51 @@ function PreferencesSurveyPage() {
           </div>
         </form>
       </div>
+
+      {/* 🔹 스킵 선택 모달 */}
+      {skipModalOpen && (
+        <div
+          className="fixed inset-0 bg-black/30 flex items-center justify-center z-50"
+          onClick={() => setSkipModalOpen(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-lg p-6 w-[360px] max-w-[92vw]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-semibold text-slate-900">
+              Skip this survey?
+            </h3>
+            <p className="mt-2 text-sm text-slate-600">
+              You can skip for now or choose not to see this survey again.
+              You can always fill it later from Settings.
+            </p>
+
+            <div className="mt-4 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={handleSkipOnce}
+                className="w-full px-3 py-2 rounded-md border border-gray-200 text-sm font-semibold text-slate-800 hover:bg-gray-50"
+              >
+                Skip only this time
+              </button>
+              <button
+                type="button"
+                onClick={handleSkipForever}
+                className="w-full px-3 py-2 rounded-md bg-slate-900 text-white text-sm font-semibold hover:opacity-95 hover:shadow"
+              >
+                Don&apos;t show again
+              </button>
+              <button
+                type="button"
+                onClick={() => setSkipModalOpen(false)}
+                className="w-full px-3 py-2 rounded-md text-sm text-slate-500 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }
