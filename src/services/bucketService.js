@@ -1,4 +1,3 @@
-// src/services/bucketService.js
 import api from "../api/axios";
 
 const normalizeItem = (raw) => {
@@ -30,24 +29,30 @@ export const fetchBucketList = async (page = 1) => {
 export const addBucketItem = async (title, userId) => {
   const fd = new FormData();
   fd.append("title", title);
-  fd.append("user", userId);
-  const res = await api.post("mypage/bucketlists/", fd, { headers: {} });
+  if (userId != null) {
+    fd.append("user", userId);
+  }
+  const res = await api.post("mypage/bucketlists/", fd);
   return normalizeItem(res?.data);
 };
 
 export const updateBucketItem = async (id, data) => {
   const fd = new FormData();
   if (data?.title !== undefined) fd.append("title", data.title);
-  if (data?.user !== undefined) fd.append("user", data.user);
-  const res = await api.put(`mypage/bucketlists/${id}/`, fd, { headers: {} });
+  if (data?.user !== undefined && data.user != null) {
+    fd.append("user", data.user);
+  }
+  const res = await api.put(`mypage/bucketlists/${id}/`, fd);
   return normalizeItem(res?.data);
 };
 
 export const patchBucketItem = async (id, data) => {
   const fd = new FormData();
   if (data?.title !== undefined) fd.append("title", data.title);
-  if (data?.user !== undefined) fd.append("user", data.user);
-  const res = await api.patch(`mypage/bucketlists/${id}/`, fd, { headers: {} });
+  if (data?.user !== undefined && data.user != null) {
+    fd.append("user", data.user);
+  }
+  const res = await api.patch(`mypage/bucketlists/${id}/`, fd);
   return normalizeItem(res?.data);
 };
 

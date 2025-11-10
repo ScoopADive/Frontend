@@ -1,4 +1,3 @@
-// src/pages/MyPage.jsx
 import { useEffect, useRef, useState, useMemo } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
@@ -215,7 +214,15 @@ function MyPage({ isOwnPage = true }) {
       const data = await userService.getMyProfile();
       const profile = Array.isArray(data) ? data[0] : data;
 
-      setProfileId(profile?.id ?? null);
+      const derivedProfileId =
+        profile?.id ??
+        profile?.profile_id ??
+        profile?.user_id ??
+        profile?.user ??
+        storeUser?.id ??
+        null;
+
+      setProfileId(derivedProfileId);
 
       const mapped = {
         id: profile?.user_id ?? storeUser?.id ?? null,
@@ -284,7 +291,6 @@ function MyPage({ isOwnPage = true }) {
 
     fetchLogs();
     fetchBuckets();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username, isOwnPage]);
 
   const handleChange = (field) => (e) => {
@@ -342,9 +348,16 @@ function MyPage({ isOwnPage = true }) {
 
   const handleAddBucket = async () => {
     const title = newBucketTitle.trim();
-    if (!title) return alert("Please enter a title.");
+    if (!title) {
+      alert("Please enter a title.");
+      return;
+    }
+    if (!storeUser?.id) {
+      alert("User info is not ready. Please reload and try again.");
+      return;
+    }
     try {
-      const created = await bucketService.create(title, storeUser?.id ?? null);
+      const created = await bucketService.create(title, storeUser.id);
       setBucketList((prev) => [created, ...prev]);
       setNewBucketTitle("");
       setShowBucketInput(false);
@@ -414,20 +427,16 @@ function MyPage({ isOwnPage = true }) {
     );
   }
 
-  // 공통 스타일 토큰
   const SOFT_SHADOW = "shadow-[0_1px_3px_rgba(2,6,23,0.06),0_0_0_1px_rgba(2,6,23,0.04)]";
   const CARD = `rounded-lg bg-white ${SOFT_SHADOW}`;
   const SECTION_HEAD = "px-6 pt-5 pb-3";
-  // 라이트 톤 버튼(기본 연한색 → hover 더 진하게)
   const BTN_LIGHT_BASE =
     "rounded-lg bg-slate-200 text-slate-900 px-3 py-2 text-sm font-semibold transition-colors";
   const BTN_LIGHT = `${BTN_LIGHT_BASE} hover:bg-slate-400`;
 
   return (
     <Layout>
-      {/* ▼▼▼ 스코프 오버라이드: MyPage 내부의 .rounded-2xl / .rounded-xl 을 전부 rounded-lg 로 강제 ▼▼▼ */}
       <div className="[&_.rounded-2xl]:rounded-lg [&_.rounded-xl]:rounded-lg">
-        {/* 상단 메트릭 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {metricStats.map(({ label, value, Icon }) => (
             <MetricTile key={label} label={label} value={value} Icon={Icon} />
@@ -435,9 +444,7 @@ function MyPage({ isOwnPage = true }) {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8 justify-center items-start">
-          {/* 좌측 칼럼 */}
           <div className="w-full lg:w-[320px] space-y-6">
-            {/* 프로필 카드 */}
             <div className={`rounded-lg border border-slate-200 bg-gradient-to-br from-[#eef1f5] via-[#eef2f7] to-[#e7efff] ${SOFT_SHADOW}`}>
               <div className="p-6">
                 <div className="flex items-center gap-2">
@@ -565,7 +572,6 @@ function MyPage({ isOwnPage = true }) {
                   {isOwnPage ? (
                     isEditing ? (
                       <div className="flex gap-2">
-                        {/* 저장/취소는 Primary 유지 */}
                         <button
                           type="button"
                           onClick={handleSaveProfile}
@@ -582,7 +588,6 @@ function MyPage({ isOwnPage = true }) {
                         </button>
                       </div>
                     ) : (
-                      // ⬇ 모양(폭/패딩/아이콘 정렬)은 유지, 색만 라이트 → hover 진하게
                       <button
                         type="button"
                         onClick={() => setIsEditing(true)}
@@ -605,7 +610,6 @@ function MyPage({ isOwnPage = true }) {
               </div>
             </div>
 
-            {/* ▼▼ Bucket List: 버튼 톤 통일(라이트 → hover 더 진하게) ▼▼ */}
             <section className={CARD}>
               <div className={SECTION_HEAD}>
                 <h3 className="text-sm font-semibold text-slate-800">Bucket List</h3>
@@ -664,9 +668,7 @@ function MyPage({ isOwnPage = true }) {
                 )}
               </div>
             </section>
-            {/* ▲▲ Bucket List 끝 ▲▲ */}
 
-            {/* ▼▼ Friends: 메시지 아이콘 버튼, Add Friend 없음 ▼▼ */}
             {isOwnPage && (
               <section className={CARD}>
                 <div className={SECTION_HEAD}>
@@ -697,12 +699,9 @@ function MyPage({ isOwnPage = true }) {
                 </div>
               </section>
             )}
-            {/* ▲▲ Friends 끝 ▲▲ */}
           </div>
 
-          {/* 중앙 칼럼 */}
           <div className="flex-1 space-y-6 lg:-ml-4">
-            {/* My Skills */}
             <section className={CARD}>
               <div className={SECTION_HEAD}>
                 <h3 className="text-sm font-semibold text-slate-800">My Skills</h3>
@@ -714,51 +713,45 @@ function MyPage({ isOwnPage = true }) {
               </div>
             </section>
 
-           {/* ===== Recent Dives (header + up to 3 cards) ===== */}
-          <section className={CARD}>
-            {/* 섹션 헤더 (다른 섹션과 동일 크기/톤) */}
-            <div className={`${SECTION_HEAD} flex items-center justify-between`}>
-              <h3 className="text-sm font-semibold text-slate-800">Recent Dives</h3>
-              <button
-                type="button"
-                onClick={() => navigate("/logs")}
-                className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
-                View All →
-              </button>
-            </div>
+            <section className={CARD}>
+              <div className={`${SECTION_HEAD} flex items-center justify-between`}>
+                <h3 className="text-sm font-semibold text-slate-800">Recent Dives</h3>
+                <button
+                  type="button"
+                  onClick={() => navigate("/logs")}
+                  className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  View All →
+                </button>
+              </div>
 
-            {/* 카드 리스트 */}
-            <div className="px-6 pb-6">
-              {Array.isArray(logs) && logs.length > 0 ? (
-                <ul className="space-y-4">
-                  {logs.slice(0, 3).map((log) => {
-                    const normalized = {
-                      id: log.id ?? log.uuid ?? String(Math.random()),
-                      dive_title: (getField(log, ["title", "dive_title"]) || "Untitled Dive"),
-                      dive_site: (getField(log, ["dive_site", "site", "spot", "location"]) || "-"),
-                      dive_date: (getField(log, ["date", "dive_date", "logged_at"]) || ""),
-                      max_depth: getField(log, ["max_depth", "depth"]) ?? "",
-                      bottom_time: getField(log, ["bottom_time", "dive_time", "duration"]) ?? "",
-                    };
-                    return (
-                      <li key={normalized.id}>
-                        <LogCard log={normalized} />
-                      </li>
-                    );
-                  })}
-                </ul>
-              ) : (
-                <div className="rounded-lg bg-slate-50 p-6 text-center text-slate-500 shadow-inner">
-                  No logs yet.
-                </div>
-              )}
-            </div>
-          </section>
-          {/* ===== /Recent Dives ===== */}
+              <div className="px-6 pb-6">
+                {Array.isArray(logs) && logs.length > 0 ? (
+                  <ul className="space-y-4">
+                    {logs.slice(0, 3).map((log) => {
+                      const normalized = {
+                        id: log.id ?? log.uuid ?? String(Math.random()),
+                        dive_title: getField(log, ["title", "dive_title"]) || "Untitled Dive",
+                        dive_site: getField(log, ["dive_site", "site", "spot", "location"]) || "-",
+                        dive_date: getField(log, ["date", "dive_date", "logged_at"]) || "",
+                        max_depth: getField(log, ["max_depth", "depth"]) ?? "",
+                        bottom_time: getField(log, ["bottom_time", "dive_time", "duration"]) ?? "",
+                      };
+                      return (
+                        <li key={normalized.id}>
+                          <LogCard log={normalized} />
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <div className="rounded-lg bg-slate-50 p-6 text-center text-slate-500 shadow-inner">
+                    No logs yet.
+                  </div>
+                )}
+              </div>
+            </section>
 
-
-            {/* Dive Depth Trend */}
             <section className={CARD}>
               <div className={SECTION_HEAD}>
                 <h3 className="text-sm font-semibold text-slate-800">Dive Depth Trend</h3>
@@ -768,7 +761,6 @@ function MyPage({ isOwnPage = true }) {
               </div>
             </section>
 
-            {/* Certification Timeline */}
             <section className={CARD}>
               <div className={SECTION_HEAD}>
                 <h3 className="text-sm font-semibold text-slate-800">Certification Timeline</h3>
@@ -778,7 +770,6 @@ function MyPage({ isOwnPage = true }) {
               </div>
             </section>
 
-            {/* Dive Spots Map */}
             <section className={CARD}>
               <div className={SECTION_HEAD}>
                 <h3 className="text-sm font-semibold text-slate-800">Dive Spots Map</h3>
@@ -790,7 +781,6 @@ function MyPage({ isOwnPage = true }) {
               </div>
             </section>
 
-            {/* Dive Heatmap */}
             <section className={CARD}>
               <div className={SECTION_HEAD}>
                 <h3 className="text-sm font-semibold text-slate-800">Dive Heatmap</h3>
@@ -802,7 +792,6 @@ function MyPage({ isOwnPage = true }) {
           </div>
         </div>
       </div>
-      {/* ▲▲▲ 스코프 오버라이드 끝 ▲▲▲ */}
 
       {isOwnPage && (
         <button
