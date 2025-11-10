@@ -9,14 +9,26 @@ export const STORAGE_KEYS = {
   ID: 'id',
 };
 
+// 모든 요청에 쿠키 포함
 axios.defaults.withCredentials = true;
 
+// 단일 axios 인스턴스 생성
 const API = axios.create({
   baseURL: 'https://scoopadive.com/api',
   headers: { Accept: 'application/json' },
   withCredentials: true,
 });
 
+// csrftoken 쿠키 가져오기
+function getCookie(name) {
+  if (typeof document === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift() || null;
+  return null;
+}
+
+// JWT payload decode
 function decodeJwtPayload(token) {
   try {
     const parts = token.split('.');
@@ -25,21 +37,21 @@ function decodeJwtPayload(token) {
     payload = payload.replace(/-/g, '+').replace(/_/g, '/');
     const pad = payload.length % 4;
     if (pad) payload += '='.repeat(4 - pad);
-    const json = atob(payload);
-    return JSON.parse(json);
+    return JSON.parse(atob(payload));
   } catch {
     return null;
   }
 }
 
+// 토큰 만료 판정
 export function isTokenExpired(token, skewMs = 60000) {
   if (!token) return true;
   const payload = decodeJwtPayload(token);
   if (!payload || typeof payload.exp !== 'number') return true;
-  const expMs = payload.exp * 1000;
-  return expMs - Date.now() <= skewMs;
+  return payload.exp * 1000 - Date.now() <= skewMs;
 }
 
+// 토큰 관련
 export function getAccess() {
   return localStorage.getItem(STORAGE_KEYS.ACCESS);
 }
@@ -54,9 +66,7 @@ function setRefresh(refresh) {
 }
 
 export function clearSession() {
-  try {
-    Object.values(STORAGE_KEYS).forEach((k) => localStorage.removeItem(k));
-  } catch {}
+  Object.values(STORAGE_KEYS).forEach((k) => localStorage.removeItem(k));
   stopProactiveTimer();
   try {
     localStorage.setItem('__logout_broadcast__', String(Date.now()));
@@ -71,26 +81,12 @@ function redirectToSignIn() {
   } catch {}
 }
 
+// 리프레시 관련 상태
 let isRefreshing = false;
 let pendingQueue = [];
-
 let refreshTimerId = null;
 
-function processQueue(error, newAccess) {
-  pendingQueue.forEach(({ resolve, reject, originalConfig }) => {
-    if (error) {
-      reject(error);
-    } else {
-      if (newAccess) {
-        originalConfig.headers = originalConfig.headers || {};
-        originalConfig.headers['Authorization'] = `Bearer ${newAccess}`;
-      }
-      resolve(API(originalConfig));
-    }
-  });
-  pendingQueue = [];
-}
-
+// 리프레시 로직
 async function tryRefreshOnce() {
   const refresh = getRefresh();
   if (!refresh) throw new Error('No refresh token');
@@ -107,17 +103,13 @@ async function tryRefreshOnce() {
   return access;
 }
 
+// 리프레시 타이머 예약
 function scheduleProactiveTimer(access) {
   stopProactiveTimer();
   if (!access) return;
-
   const payload = decodeJwtPayload(access);
   if (!payload || typeof payload.exp !== 'number') return;
-
-  const expMs = payload.exp * 1000;
-  const lead = 120000;
-  const delay = Math.max(0, expMs - Date.now() - lead);
-
+  const delay = Math.max(0, payload.exp * 1000 - Date.now() - 120000);
   refreshTimerId = window.setTimeout(async () => {
     if (isRefreshing) return;
     try {
@@ -133,58 +125,9 @@ function scheduleProactiveTimer(access) {
 }
 
 function stopProactiveTimer() {
-  if (refreshTimerId) {
-    clearTimeout(refreshTimerId);
-    refreshTimerId = null;
-  }
+  if (refreshTimerId) clearTimeout(refreshTimerId);
+  refreshTimerId = null;
 }
-
-function setupWindowEvents() {
-  document.addEventListener('visibilitychange', async () => {
-    if (document.visibilityState !== 'visible') return;
-    const access = getAccess();
-    if (access && isTokenExpired(access, 90000)) {
-      if (!isRefreshing) {
-        try {
-          isRefreshing = true;
-          await tryRefreshOnce();
-        } catch {
-          clearSession();
-          redirectToSignIn();
-        } finally {
-          isRefreshing = false;
-        }
-      }
-    }
-  });
-
-  window.addEventListener('online', async () => {
-    const access = getAccess();
-    if (access && isTokenExpired(access, 90000)) {
-      if (!isRefreshing) {
-        try {
-          isRefreshing = true;
-          await tryRefreshOnce();
-        } catch {
-          clearSession();
-          redirectToSignIn();
-        } finally {
-          isRefreshing = false;
-        }
-      }
-    }
-  });
-
-  window.addEventListener('storage', (e) => {
-    if (e.key === '__logout_broadcast__') {
-      stopProactiveTimer();
-      if (window.location.pathname !== '/signin') {
-        window.location.assign('/signin');
-      }
-    }
-  });
-}
-setupWindowEvents();
 
 export function registerSession({ access, refresh }) {
   if (access) setAccess(access);
@@ -192,14 +135,7 @@ export function registerSession({ access, refresh }) {
   if (access) scheduleProactiveTimer(access);
 }
 
-function getCookie(name) {
-  if (typeof document === 'undefined') return null;
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(';').shift() || null;
-  return null;
-}
-
+// 요청 인터셉터 (CSRF + JWT)
 API.interceptors.request.use(
   async (config) => {
     let access = getAccess();
@@ -212,7 +148,7 @@ API.interceptors.request.use(
         } catch {
           clearSession();
           redirectToSignIn();
-          return Promise.reject(new Error('Access token refresh failed'));
+          return Promise.reject(new Error('Token refresh failed'));
         } finally {
           isRefreshing = false;
         }
@@ -224,47 +160,41 @@ API.interceptors.request.use(
       config.headers['Authorization'] = `Bearer ${access}`;
     }
 
-    const isFormData = typeof FormData !== 'undefined' && config.data instanceof FormData;
-    if (isFormData && config.headers && config.headers['Content-Type']) {
-      delete config.headers['Content-Type'];
-    } else if (!isFormData) {
-      if (config.headers && !config.headers['Content-Type']) {
-        config.headers['Content-Type'] = 'application/json';
+    // 모든 요청에 쿠키 포함
+    config.withCredentials = true;
+
+    // CSRF 헤더 자동 추가 (POST/PUT/PATCH/DELETE)
+    const method = (config.method || 'get').toLowerCase();
+    const unsafe = ['post', 'put', 'patch', 'delete'];
+    if (unsafe.includes(method)) {
+      const csrf = getCookie('csrftoken');
+      if (csrf) {
+        config.headers['X-CSRFToken'] = csrf;
       }
     }
 
-    config.withCredentials = true;
-
-    if (typeof document !== 'undefined') {
-      const method = (config.method || 'get').toLowerCase();
-      const unsafe = ['post', 'put', 'patch', 'delete'];
-      if (unsafe.includes(method)) {
-        const csrfToken = getCookie('csrftoken');
-        if (csrfToken) {
-          config.headers = config.headers || {};
-          config.headers['X-CSRFToken'] = csrfToken;
-        }
-      }
+    // multipart/form-data 자동 처리
+    const isFormData =
+      typeof FormData !== 'undefined' && config.data instanceof FormData;
+    if (isFormData && config.headers['Content-Type']) {
+      delete config.headers['Content-Type'];
+    } else if (!isFormData && !config.headers['Content-Type']) {
+      config.headers['Content-Type'] = 'application/json';
     }
 
     return config;
   },
-  (error) => Promise.reject(error),
+  (error) => Promise.reject(error)
 );
 
+// 응답 인터셉터
 API.interceptors.response.use(
   (res) => res,
   async (error) => {
     const status = error?.response?.status;
     const originalConfig = error?.config;
-
-    if (status !== 401 || !originalConfig) {
-      return Promise.reject(error);
-    }
-
-    if (originalConfig.__handled401) {
-      return Promise.reject(error);
-    }
+    if (status !== 401 || !originalConfig) return Promise.reject(error);
+    if (originalConfig.__handled401) return Promise.reject(error);
     originalConfig.__handled401 = true;
 
     const access = getAccess();
@@ -276,30 +206,32 @@ API.interceptors.response.use(
           pendingQueue.push({ resolve, reject, originalConfig });
         });
       }
-
       isRefreshing = true;
       try {
         const newAccess = await tryRefreshOnce();
         isRefreshing = false;
-        processQueue(null, newAccess);
-        originalConfig.headers = originalConfig.headers || {};
+        pendingQueue.forEach(({ resolve }) =>
+          resolve(API(originalConfig))
+        );
+        pendingQueue = [];
         originalConfig.headers['Authorization'] = `Bearer ${newAccess}`;
         return API(originalConfig);
-      } catch (refreshErr) {
+      } catch (err) {
         isRefreshing = false;
-        processQueue(refreshErr, null);
+        pendingQueue = [];
         clearSession();
         redirectToSignIn();
-        return Promise.reject(refreshErr);
+        return Promise.reject(err);
       }
     }
 
     clearSession();
     redirectToSignIn();
     return Promise.reject(error);
-  },
+  }
 );
 
+// 앱 시작 시 타이머 등록
 (function bootstrapTimer() {
   try {
     const access = getAccess();
