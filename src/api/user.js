@@ -54,29 +54,33 @@ export const getMyProfile = async () => {
 
 export const updateUserProfile = async (id, data) => {
   const fd = new FormData();
-  const putIfFilled = (k, v) => {
-    if (v === undefined || v === null) return;
-    if (typeof v === 'string' && v.trim() === '') return;
-    fd.append(k, v);
-  };
 
-  const username = typeof data.username === 'string' ? data.username.trim() : data.username;
-  const email = typeof data.email === 'string' ? data.email.trim() : data.email;
-  const country = typeof data.country === 'string' ? data.country.trim() : data.country;
-  const introduction = typeof data.introduction === 'string' ? data.introduction.trim() : data.introduction;
+  const username =
+    typeof data.username === 'string' ? data.username.trim() : '';
+  const email =
+    typeof data.email === 'string' ? data.email.trim() : '';
+  const country =
+    typeof data.country === 'string' ? data.country.trim() : '';
+  const introduction =
+    typeof data.introduction === 'string' ? data.introduction.trim() : '';
+  const rawLicense =
+    typeof data.license === 'string' ? data.license.trim() : '';
 
-  putIfFilled('username', username);
-  putIfFilled('email', email);
-  putIfFilled('country', country);
+  fd.append('username', username);
+  fd.append('email', email);
+  fd.append('country', country);
 
-  if (typeof data.license === 'string' && data.license.trim() !== '' && ALLOWED_LICENSES.includes(data.license)) {
-    fd.append('license', data.license);
+  if (rawLicense && ALLOWED_LICENSES.includes(rawLicense)) {
+    fd.append('license', rawLicense);
+  } else {
+    fd.append('license', '');
   }
 
-  putIfFilled('introduction', introduction);
+  fd.append('introduction', introduction);
 
-  if (data.profile_image instanceof File) {
-    fd.append('profile_image', data.profile_image);
+  const profileImage = data.profile_image;
+  if (profileImage instanceof File || profileImage instanceof Blob) {
+    fd.append('profile_image', profileImage);
   }
 
   try {
