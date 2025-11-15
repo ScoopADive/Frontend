@@ -1,3 +1,4 @@
+// src/pages/MyPage.jsx
 import { useEffect, useRef, useState, useMemo } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
@@ -24,6 +25,7 @@ import {
   Calendar,
   MessageSquare,
 } from "lucide-react";
+import { uploadImageAndCreatePhoto } from "../api/photo";
 
 const COUNTRY_OPTIONS = [
   { label: "Select country", value: "" },
@@ -105,7 +107,7 @@ function MyPage({ isOwnPage = true }) {
 
   const [loading, setLoading] = useState(true);
   const fileInputRef = useRef(null);
-  const selectedFileRef = useRef(null);
+  const selectedFileRef = useRef(null); // 이제는 "업로드된 이미지 URL" 을 저장
   const [errors, setErrors] = useState({});
 
   const friends = [
@@ -232,7 +234,9 @@ function MyPage({ isOwnPage = true }) {
         license: profile?.license ?? "",
         introduction: profile?.introduction ?? "",
         profile_image_url:
-          profile?.profile_image ?? storeUser?.profile_image ?? "https://via.placeholder.com/100",
+          profile?.profile_image ??
+          storeUser?.profile_image ??
+          "https://placehold.co/100x100?text=Profile",
         specialties: profile?.specialties ?? [],
       };
 
@@ -254,7 +258,8 @@ function MyPage({ isOwnPage = true }) {
         country: storeUser?.country || "",
         license: "",
         introduction: "",
-        profile_image_url: storeUser?.profile_image || "https://via.placeholder.com/100",
+        profile_image_url:
+          storeUser?.profile_image || "https://placehold.co/100x100?text=Profile",
         specialties: [],
       };
       setUser(fallback);
@@ -323,13 +328,14 @@ function MyPage({ isOwnPage = true }) {
 
     try {
       const payload = {
-        username: user.username.trim(),
-        email: user.email.trim(),
-        country: user.country || undefined,
-        license: user.license || undefined,
-        introduction: user.introduction?.trim() || undefined,
-        profile_image: selectedFileRef.current || undefined,
-      };
+      username: user.username.trim(),
+      email: user.email.trim(),
+      country: user.country || undefined,
+      license: user.license || undefined,
+      introduction: user.introduction?.trim() || undefined,
+      profile_image: selectedFileRef.current || user.profile_image_url || undefined,
+    };
+
 
       await userService.updateProfile(profileId, payload);
       selectedFileRef.current = null;
@@ -366,16 +372,27 @@ function MyPage({ isOwnPage = true }) {
     }
   };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    selectedFileRef.current = file;
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setUser((prev) => ({ ...prev, profile_image_url: reader.result }));
-    };
-    reader.readAsDataURL(file);
-  };
+  // ✅ 여기서부터 S3 업로드 연동된 부분
+  const handleImageUpload = async (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
+
+  try {
+    const { imageUrl } = await uploadImageAndCreatePhoto(file, { scope: "profile" });
+
+    // 서버에 보낼 값은 URL 문자열로 들고 있는다
+    selectedFileRef.current = imageUrl;
+
+    // 화면 미리보기도 S3 URL로 교체
+    setUser((prev) => ({
+      ...prev,
+      profile_image_url: imageUrl,
+    }));
+  } catch (err) {
+    console.error("Failed to upload image to S3", err);
+    alert("이미지 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.");
+  }
+};
 
   const openComposerFor = (friend) => {
     setComposerReceiver(friend);

@@ -9,6 +9,7 @@ import api from "../api/axios";
 import { useUsers } from "../context/UsersContext";
 import WordPressLoginButton from "../components/buttons/WordPressLoginButton";
 import WordPressPublishButton from "../components/buttons/WordPressPublishButton";
+import { uploadImageAndCreatePhoto } from "../api/photo";
 
 function MetricCard({ label, value }) {
   return (
@@ -25,13 +26,17 @@ function ReadRow({ leftLabel, leftValue, rightLabel, rightValue }) {
   return (
     <div className="grid grid-cols-2 gap-6 py-2">
       <div className="flex">
-        <div className="shrink-0 w-28 text-xs text-gray-500 pt-0.5">{leftLabel}</div>
+        <div className="shrink-0 w-28 text-xs text-gray-500 pt-0.5">
+          {leftLabel}
+        </div>
         <div className="text-[15px] font-medium text-gray-900 break-words min-h-[20px]">
           {leftValue ?? "—"}
         </div>
       </div>
       <div className="flex">
-        <div className="shrink-0 w-28 text-xs text-gray-500 pt-0.5">{rightLabel}</div>
+        <div className="shrink-0 w-28 text-xs text-gray-500 pt-0.5">
+          {rightLabel}
+        </div>
         <div className="text-[15px] font-medium text-gray-900 break-words min-h-[20px]">
           {rightValue ?? "—"}
         </div>
@@ -47,7 +52,6 @@ function LogDetailPage() {
 
   const [log, setLog] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [selectedImageFile, setSelectedImageFile] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [form, setForm] = useState({});
   const [loadError, setLoadError] = useState(null);
@@ -79,6 +83,8 @@ function LogDetailPage() {
       certification_agency: data?.certification_agency || "",
       certification_level: data?.certification_level || "",
       certification_number: data?.certification_number || "",
+      // 서버: dive_image_url을 우선 사용, 없으면 기존 dive_image
+      dive_image: data?.dive_image_url || data?.dive_image || "",
     });
 
   useEffect(() => {
@@ -88,20 +94,24 @@ function LogDetailPage() {
         setLoadError(null);
         const result = await logService.getLogById(id);
         if (!alive) return;
+
         setLog({
           ...result,
           likes_count: result?.likes_count ?? 0,
           liked_by_current_user: result?.liked_by_current_user ?? false,
           is_published: result?.is_published ?? false,
         });
+
         fillFormFrom(result);
-        if (result?.dive_image) {
-          const isFullURL = result.dive_image.startsWith("http");
-          setImagePreview(isFullURL ? result.dive_image : `${BASE_URL}${result.dive_image}`);
+
+        // 미리보기도 dive_image_url 우선 사용
+        if (result?.dive_image_url || result?.dive_image) {
+          const raw = result.dive_image_url || result.dive_image;
+          const isFullURL = raw.startsWith("http");
+          setImagePreview(isFullURL ? raw : `${BASE_URL}${raw}`);
         } else {
           setImagePreview(null);
         }
-        setSelectedImageFile(null);
       } catch {
         if (!alive) return;
         setLoadError("Failed to fetch the log. Please try again.");
@@ -117,7 +127,6 @@ function LogDetailPage() {
   const handleBack = () => {
     if (isEditing) {
       fillFormFrom(log);
-      setSelectedImageFile(null);
       setIsEditing(false);
     } else {
       navigate(-1);
@@ -146,32 +155,56 @@ function LogDetailPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleImageChange = (e) => {
+  // S3 업로드 연동
+  const handleImageChange = async (e) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setSelectedImageFile(file);
-      const url = URL.createObjectURL(file);
-      setImagePreview(url);
+    if (!file || !log) return;
+
+    try {
+      const { imageUrl } = await uploadImageAndCreatePhoto(file, {
+        scope: "log",
+        logId: log.id,
+      });
+
+      // form 안에 URL을 넣어서 updateLog 때 같이 보내기
+      setForm((prev) => ({
+        ...prev,
+        dive_image: imageUrl,
+      }));
+
+      // 화면 미리보기
+      setImagePreview(imageUrl);
+    } catch (err) {
+      console.error("Failed to upload image to S3", err);
+      alert("이미지 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.");
     }
   };
 
   const handleSubmit = async () => {
     try {
       const formData = new FormData();
+
+      // 1) equipment 배열 먼저
       if (Array.isArray(form.equipment)) {
         form.equipment.forEach((eq) => formData.append("equipment", eq));
       }
+
+      // 2) 나머지 일반 필드들 (dive_image는 여기서 제외)
       Object.entries(form).forEach(([key, value]) => {
-        if (key === "equipment") return;
+        if (key === "equipment" || key === "dive_image") return;
         if (value !== null && value !== "") {
           formData.append(key, value);
         }
       });
-      if (selectedImageFile) {
-        formData.append("dive_image", selectedImageFile);
+
+      // 3) S3 URL 문자열을 dive_image_url 로만 전송
+      if (form.dive_image) {
+        formData.append("dive_image_url", form.dive_image);
       }
+
       await logService.updateLog(log.id, formData);
       setIsEditing(false);
+
       const updated = await logService.getLogById(id);
       setLog({
         ...updated,
@@ -179,13 +212,15 @@ function LogDetailPage() {
         liked_by_current_user: updated?.liked_by_current_user ?? false,
         is_published: updated?.is_published ?? false,
       });
-      if (updated?.dive_image) {
-        const isFullURL = updated.dive_image.startsWith("http");
-        setImagePreview(isFullURL ? updated.dive_image : `${BASE_URL}${updated.dive_image}`);
+
+      // 저장 후에도 dive_image_url 우선 사용
+      if (updated?.dive_image_url || updated?.dive_image) {
+        const raw = updated.dive_image_url || updated.dive_image;
+        const isFullURL = raw.startsWith("http");
+        setImagePreview(isFullURL ? raw : `${BASE_URL}${raw}`);
       } else {
         setImagePreview(null);
       }
-      setSelectedImageFile(null);
     } catch (err) {
       alert("Update failed: " + (err?.response?.data?.detail || err?.message));
     }
@@ -239,14 +274,19 @@ function LogDetailPage() {
       <div className="max-w-6xl mx-auto px-6 py-8 font-sans text-gray-900">
         <div className="flex items-center justify-between gap-3 mb-5">
           <div className="min-w-0">
-            <h1 className="text-[22px] font-bold truncate">{log?.dive_title || "Dive Log"}</h1>
+            <h1 className="text-[22px] font-bold truncate">
+              {log?.dive_title || "Dive Log"}
+            </h1>
             <p className="text-xs text-gray-500 truncate">
-              {log?.dive_site || "Unknown site"} · {log?.dive_date || "Unknown date"}
+              {log?.dive_site || "Unknown site"} ·{" "}
+              {log?.dive_date || "Unknown date"}
             </p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             <WordPressLoginButton />
-            {isOwner && !isEditing && <WordPressPublishButton logbookId={Number(id)} />}
+            {isOwner && !isEditing && (
+              <WordPressPublishButton logbookId={Number(id)} />
+            )}
             <button
               onClick={handleBack}
               className="px-3 py-1.5 text-xs border rounded-md text-gray-700 hover:bg-gray-50"
@@ -261,7 +301,8 @@ function LogDetailPage() {
                   : "bg-gray-200 text-gray-800 hover:bg-gray-300"
               }`}
             >
-              {log?.liked_by_current_user ? "Liked" : "Like"} {log?.likes_count ?? 0}
+              {log?.liked_by_current_user ? "Liked" : "Like"}{" "}
+              {log?.likes_count ?? 0}
             </button>
             {isOwner && !isEditing && (
               <>
@@ -273,7 +314,11 @@ function LogDetailPage() {
                 </button>
                 <button
                   onClick={async () => {
-                    if (window.confirm("Are you sure you want to delete this log?")) {
+                    if (
+                      window.confirm(
+                        "Are you sure you want to delete this log?"
+                      )
+                    ) {
                       await logService.deleteLog(log.id);
                       navigate("/mypage");
                     }
@@ -289,10 +334,12 @@ function LogDetailPage() {
 
         <div className="grid grid-cols-2 gap-8 items-stretch">
           <section className="bg-white rounded-2xl shadow p-6 h-full flex flex-col">
-            <h2 className="text-[17px] font-bold text-gray-800 mb-3">Diver&apos;s ID</h2>
+            <h2 className="text-[17px] font-bold text-gray-800 mb-3">
+              Diver&apos;s ID
+            </h2>
             {imagePreview ? (
               <img
-                src={imagePreview}
+                src={encodeURI(imagePreview)}
                 alt="Dive"
                 className="w-full h-[180px] object-cover rounded-xl mb-4"
               />
@@ -315,7 +362,9 @@ function LogDetailPage() {
                 </div>
               </div>
               <div className="flex">
-                <div className="w-28 text-xs text-gray-500">Certification Level</div>
+                <div className="w-28 text-xs text-gray-500">
+                  Certification Level
+                </div>
                 <div className="text-[15px] font-medium">
                   {log?.certification_level || "Not provided"}
                 </div>
@@ -346,9 +395,20 @@ function LogDetailPage() {
                 <div className="space-y-5 flex-1 flex flex-col">
                   <div className="grid grid-cols-4 gap-3 rounded-xl border border-gray-100 p-3 bg-gray-50">
                     <MetricCard label="Dive No" value={log?.id} />
-                    <MetricCard label="Date" value={form?.dive_date || "—"} />
-                    <MetricCard label="Max Depth" value={form?.max_depth ? `${form.max_depth} m` : "—"} />
-                    <MetricCard label="Dive Time" value={form?.bottom_time || "—"} />
+                    <MetricCard
+                      label="Date"
+                      value={form?.dive_date || "—"}
+                    />
+                    <MetricCard
+                      label="Max Depth"
+                      value={
+                        form?.max_depth ? `${form.max_depth} m` : "—"
+                      }
+                    />
+                    <MetricCard
+                      label="Dive Time"
+                      value={form?.bottom_time || "—"}
+                    />
                   </div>
 
                   <div className="py-3">
@@ -368,38 +428,95 @@ function LogDetailPage() {
 
                   <div className="divide-y divide-gray-100">
                     <div className="py-3 grid grid-cols-2 gap-6">
-                      <Input label="Title" value={form.dive_title} onChange={handleChange("dive_title")} />
-                      <Input label="Site" value={form.dive_site} onChange={handleChange("dive_site")} />
+                      <Input
+                        label="Title"
+                        value={form.dive_title}
+                        onChange={handleChange("dive_title")}
+                      />
+                      <Input
+                        label="Site"
+                        value={form.dive_site}
+                        onChange={handleChange("dive_site")}
+                      />
                     </div>
 
                     <div className="py-3 grid grid-cols-2 gap-6">
-                      <Input label="Date" type="date" value={form.dive_date} onChange={handleChange("dive_date")} />
-                      <Input label="Max Depth" type="number" value={form.max_depth} onChange={handleChange("max_depth")} />
+                      <Input
+                        label="Date"
+                        type="date"
+                        value={form.dive_date}
+                        onChange={handleChange("dive_date")}
+                      />
+                      <Input
+                        label="Max Depth"
+                        type="number"
+                        value={form.max_depth}
+                        onChange={handleChange("max_depth")}
+                      />
                     </div>
 
                     <div className="py-3 grid grid-cols-2 gap-6">
-                      <Input label="Bottom Time" value={form.bottom_time} onChange={handleChange("bottom_time")} />
-                      <Input label="Location" value={form.location} onChange={handleChange("location")} />
+                      <Input
+                        label="Bottom Time"
+                        value={form.bottom_time}
+                        onChange={handleChange("bottom_time")}
+                      />
+                      <Input
+                        label="Location"
+                        value={form.location}
+                        onChange={handleChange("location")}
+                      />
                     </div>
 
                     <div className="py-3 grid grid-cols-2 gap-6">
-                      <Input label="Weather" value={form.weather} onChange={handleChange("weather")} />
-                      <Input label="Dive Type" value={form.type_of_dive} onChange={handleChange("type_of_dive")} />
+                      <Input
+                        label="Weather"
+                        value={form.weather}
+                        onChange={handleChange("weather")}
+                      />
+                      <Input
+                        label="Dive Type"
+                        value={form.type_of_dive}
+                        onChange={handleChange("type_of_dive")}
+                      />
                     </div>
 
                     <div className="py-3 grid grid-cols-2 gap-6">
-                      <Input label="Weight" type="number" value={form.weight} onChange={handleChange("weight")} />
+                      <Input
+                        label="Weight"
+                        type="number"
+                        value={form.weight}
+                        onChange={handleChange("weight")}
+                      />
                       <div className="grid grid-cols-2 gap-4">
-                        <Input label="Start P" type="number" value={form.start_pressure} onChange={handleChange("start_pressure")} />
-                        <Input label="End P" type="number" value={form.end_pressure} onChange={handleChange("end_pressure")} />
+                        <Input
+                          label="Start P"
+                          type="number"
+                          value={form.start_pressure}
+                          onChange={handleChange("start_pressure")}
+                        />
+                        <Input
+                          label="End P"
+                          type="number"
+                          value={form.end_pressure}
+                          onChange={handleChange("end_pressure")}
+                        />
                       </div>
                     </div>
 
                     <div className="py-3 grid grid-cols-2 gap-6">
-                      <Input label="Dive Center" value={form.dive_center} onChange={handleChange("dive_center")} />
+                      <Input
+                        label="Dive Center"
+                        value={form.dive_center}
+                        onChange={handleChange("dive_center")}
+                      />
                       <Input
                         label="Equipment (comma separated)"
-                        value={Array.isArray(form.equipment) ? form.equipment.join(", ") : ""}
+                        value={
+                          Array.isArray(form.equipment)
+                            ? form.equipment.join(", ")
+                            : ""
+                        }
                         onChange={(e) =>
                           setForm((prev) => ({
                             ...prev,
@@ -413,7 +530,9 @@ function LogDetailPage() {
                     </div>
 
                     <div className="py-3">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Notes
+                      </label>
                       <textarea
                         className="w-full border rounded-md px-3 py-2 text-[14px] focus:outline-none focus:ring-2 focus:ring-blue-200"
                         rows={4}
@@ -442,7 +561,11 @@ function LogDetailPage() {
                 <>
                   <div className="grid grid-cols-4 gap-3 rounded-xl border border-gray-100 p-3 bg-gray-50 mb-4">
                     {summary.map((m) => (
-                      <MetricCard key={m.label} label={m.label} value={m.value} />
+                      <MetricCard
+                        key={m.label}
+                        label={m.label}
+                        value={m.value}
+                      />
                     ))}
                   </div>
 
@@ -463,7 +586,9 @@ function LogDetailPage() {
                       leftLabel="Dive Type"
                       leftValue={log?.type_of_dive || "—"}
                       rightLabel="Weight"
-                      rightValue={log?.weight ? `${log.weight} kg` : "—"}
+                      rightValue={
+                        log?.weight ? `${log.weight} kg` : "—"
+                      }
                     />
                     <ReadRow
                       leftLabel="Start P"
@@ -476,20 +601,28 @@ function LogDetailPage() {
                       leftValue={log?.dive_center_name || "—"}
                       rightLabel="Equipment"
                       rightValue={
-                        Array.isArray(log?.equipment) && log.equipment.length > 0
-                          ? log.equipment.map((e) => e?.name).filter(Boolean).join(", ")
+                        Array.isArray(log?.equipment) &&
+                        log.equipment.length > 0
+                          ? log.equipment
+                              .map((e) => e?.name)
+                              .filter(Boolean)
+                              .join(", ")
                           : "—"
                       }
                     />
                   </div>
 
                   <div className="mt-4">
-                    <h3 className="text-sm font-semibold mb-1">Notes</h3>
+                    <h3 className="text-sm font-semibold mb-1">
+                      Notes
+                    </h3>
                     <div className="bg-yellow-50 border border-yellow-200 text-yellow-900 rounded-md text-[14px] leading-snug px-3 py-2 min-h-[48px]">
                       {log?.memo ? (
                         <span>{log.memo}</span>
                       ) : (
-                        <span className="italic text-yellow-800/80">No notes recorded.</span>
+                        <span className="italic text-yellow-800/80">
+                          No notes recorded.
+                        </span>
                       )}
                     </div>
                   </div>
