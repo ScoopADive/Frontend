@@ -26,6 +26,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { uploadImageAndCreatePhoto } from "../api/photo";
+import api from "../api/axios";
 
 const COUNTRY_OPTIONS = [
   { label: "Select country", value: "" },
@@ -107,7 +108,7 @@ function MyPage({ isOwnPage = true }) {
 
   const [loading, setLoading] = useState(true);
   const fileInputRef = useRef(null);
-  const selectedFileRef = useRef(null); // 이제는 "업로드된 이미지 URL" 을 저장
+  const selectedFileRef = useRef(null);
   const [errors, setErrors] = useState({});
 
   const friends = [
@@ -213,8 +214,21 @@ function MyPage({ isOwnPage = true }) {
   const hydrateFromServer = async () => {
     setLoading(true);
     try {
-      const data = await userService.getMyProfile();
-      const profile = Array.isArray(data) ? data[0] : data;
+      const res = await api.get("/mypage/");
+      let raw = res.data;
+      let profile = null;
+
+      if (Array.isArray(raw)) {
+        profile = raw[0];
+      } else if (raw && typeof raw === "object") {
+        if (raw.profile) {
+          profile = raw.profile;
+        } else if (raw.data) {
+          profile = raw.data;
+        } else {
+          profile = raw;
+        }
+      }
 
       const derivedProfileId =
         profile?.id ??
@@ -328,14 +342,13 @@ function MyPage({ isOwnPage = true }) {
 
     try {
       const payload = {
-      username: user.username.trim(),
-      email: user.email.trim(),
-      country: user.country || undefined,
-      license: user.license || undefined,
-      introduction: user.introduction?.trim() || undefined,
-      profile_image: selectedFileRef.current || user.profile_image_url || undefined,
-    };
-
+        username: user.username.trim(),
+        email: user.email.trim(),
+        country: user.country || undefined,
+        license: user.license || undefined,
+        introduction: user.introduction?.trim() || undefined,
+        profile_image: selectedFileRef.current || user.profile_image_url || undefined,
+      };
 
       await userService.updateProfile(profileId, payload);
       selectedFileRef.current = null;
@@ -372,27 +385,22 @@ function MyPage({ isOwnPage = true }) {
     }
   };
 
-  // ✅ 여기서부터 S3 업로드 연동된 부분
   const handleImageUpload = async (e) => {
-  const file = e.target.files?.[0];
-  if (!file) return;
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  try {
-    const { imageUrl } = await uploadImageAndCreatePhoto(file, { scope: "profile" });
-
-    // 서버에 보낼 값은 URL 문자열로 들고 있는다
-    selectedFileRef.current = imageUrl;
-
-    // 화면 미리보기도 S3 URL로 교체
-    setUser((prev) => ({
-      ...prev,
-      profile_image_url: imageUrl,
-    }));
-  } catch (err) {
-    console.error("Failed to upload image to S3", err);
-    alert("이미지 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.");
-  }
-};
+    try {
+      const { imageUrl } = await uploadImageAndCreatePhoto(file, { scope: "profile" });
+      selectedFileRef.current = imageUrl;
+      setUser((prev) => ({
+        ...prev,
+        profile_image_url: imageUrl,
+      }));
+    } catch (err) {
+      console.error("Failed to upload image to S3", err);
+      alert("이미지 업로드에 실패했습니다. 잠시 후 다시 시도해주세요.");
+    }
+  };
 
   const openComposerFor = (friend) => {
     setComposerReceiver(friend);
@@ -753,6 +761,7 @@ function MyPage({ isOwnPage = true }) {
                         dive_date: getField(log, ["date", "dive_date", "logged_at"]) || "",
                         max_depth: getField(log, ["max_depth", "depth"]) ?? "",
                         bottom_time: getField(log, ["bottom_time", "dive_time", "duration"]) ?? "",
+                        thumbnail: getLogThumb(log),
                       };
                       return (
                         <li key={normalized.id}>
@@ -839,6 +848,7 @@ function MetricTile({ label, value, Icon }) {
     </div>
   );
 }
+
 MetricTile.propTypes = {
   label: PropTypes.string.isRequired,
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
