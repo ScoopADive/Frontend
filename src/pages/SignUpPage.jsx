@@ -1,20 +1,27 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+// src/pages/SignUpPage.jsx
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 
-import Layout from "../components/layout/Layout";
-import Input from "../components/common/Input";
-import Button from "../components/common/Button";
-import authService from "../services/authService";
-import useUserStore from "../store/userStore";
-import { handleFormChange } from "../utils/formUtil";
-import { AUTH_LABELS, AUTH_MESSAGES, AUTH_ROUTES } from "../constants";
+import Layout from '../components/layout/Layout';
+import Input from '../components/common/Input';
+import Button from '../components/common/Button';
+import authService from '../services/authService';
+import useUserStore from '../store/userStore';
+import { handleFormChange } from '../utils/formUtil';
+import { AUTH_LABELS, AUTH_MESSAGES, AUTH_ROUTES } from '../constants';
+import { fetchMyPreferences } from '../api/preferences';
+
+// 유저별 설문 스킵 키 생성
+function getSurveySkipKey(userId) {
+  return userId ? `survey_never_show_${userId}` : 'survey_never_show';
+}
 
 function SignUpPage() {
   const [form, setForm] = useState({
-    email: "",
-    username: "",
-    password: "",
-    country: "",
+    email: '',
+    username: '',
+    password: '',
+    country: '',
   });
 
   const [error, setError] = useState({});
@@ -24,14 +31,14 @@ function SignUpPage() {
 
   const validate = () => {
     const errors = {};
-    if (!form.email.includes("@") || !form.email.includes(".")) {
-      errors.email = "올바른 이메일 주소를 입력해주세요.";
+    if (!form.email.includes('@') || !form.email.includes('.')) {
+      errors.email = '올바른 이메일 주소를 입력해주세요.';
     }
-    if (!form.username) errors.username = "이름을 입력해주세요.";
+    if (!form.username) errors.username = '이름을 입력해주세요.';
     if (form.password.length < 8) {
-      errors.password = "비밀번호는 최소 8자 이상이어야 합니다.";
+      errors.password = '비밀번호는 최소 8자 이상이어야 합니다.';
     }
-    if (!form.country) errors.country = "국적을 선택해주세요.";
+    if (!form.country) errors.country = '국적을 선택해주세요.';
     return errors;
   };
 
@@ -48,20 +55,49 @@ function SignUpPage() {
     setError({});
 
     try {
+      // 1) 회원가입
       await authService.signup(form);
-      alert("🎉 회원가입이 완료되었습니다!");
+      alert('🎉 회원가입이 완료되었습니다!');
 
+      // 2) 바로 로그인 시도
       try {
         const data = await authService.signin(form.email, form.password);
+
+        // 로그인 정보 저장
+        localStorage.setItem('email', data.email);
+        localStorage.setItem('name', data.name);
+        localStorage.setItem('id', String(data.id));
         setUser({ id: data.id, email: data.email, name: data.name });
-        navigate(AUTH_ROUTES.HOME);
+
+        // 3) 방금 가입한 계정에 대해 설문 여부 확인
+        let prefs = null;
+        try {
+          prefs = await fetchMyPreferences();
+        } catch (err) {
+          console.error('failed to load preferences after signup-login', err);
+        }
+
+        let neverShow = false;
+        try {
+          const skipKey = getSurveySkipKey(data.id);
+          neverShow = localStorage.getItem(skipKey) === '1';
+        } catch (err) {
+          console.error('failed to read survey_never_show', err);
+        }
+
+        if (!prefs && !neverShow) {
+          // 신규 가입자는 거의 무조건 여기로 빠질 것
+          navigate('/settings/preferences', { replace: true });
+        } else {
+          navigate(AUTH_ROUTES.HOME);
+        }
       } catch {
-        alert("자동 로그인 실패. 로그인 페이지로 이동합니다.");
+        alert('자동 로그인 실패. 로그인 페이지로 이동합니다.');
         navigate(AUTH_ROUTES.SIGNIN);
       }
     } catch (err) {
-      alert("❌ 회원가입에 실패했습니다.");
-      console.error("❌ signup error:", err);
+      alert('❌ 회원가입에 실패했습니다.');
+      console.error('❌ signup error:', err);
     } finally {
       setLoading(false);
     }
@@ -81,7 +117,9 @@ function SignUpPage() {
             value={form.email}
             onChange={handleFormChange(setForm)}
           />
-          {error.email && <p className="text-sm text-red-500">{error.email}</p>}
+          {error.email && (
+            <p className="text-sm text-red-500">{error.email}</p>
+          )}
         </div>
 
         <div className="space-y-1">
@@ -91,7 +129,9 @@ function SignUpPage() {
             value={form.username}
             onChange={handleFormChange(setForm)}
           />
-          {error.username && <p className="text-sm text-red-500">{error.username}</p>}
+          {error.username && (
+            <p className="text-sm text-red-500">{error.username}</p>
+          )}
         </div>
 
         <div className="space-y-1">
@@ -102,7 +142,9 @@ function SignUpPage() {
             value={form.password}
             onChange={handleFormChange(setForm)}
           />
-          {error.password && <p className="text-sm text-red-500">{error.password}</p>}
+          {error.password && (
+            <p className="text-sm text-red-500">{error.password}</p>
+          )}
         </div>
 
         <div className="space-y-1">
@@ -120,16 +162,18 @@ function SignUpPage() {
             <option value="Thailand">태국</option>
             <option value="Other">기타</option>
           </select>
-          {error.country && <p className="text-sm text-red-500">{error.country}</p>}
+          {error.country && (
+            <p className="text-sm text-red-500">{error.country}</p>
+          )}
         </div>
 
         <Button
-          text={loading ? "Creating account..." : "Sign Up"}
+          text={loading ? 'Creating account...' : 'Sign Up'}
           onClick={handleSubmit}
         />
 
         <div className="text-center text-sm text-gray-600 mt-4">
-          이미 계정을 가지고 계신가요?{" "}
+          이미 계정을 가지고 계신가요?{' '}
           <Link
             to="/signin"
             className="text-blue-600 hover:text-blue-700 font-semibold"
@@ -143,4 +187,3 @@ function SignUpPage() {
 }
 
 export default SignUpPage;
-

@@ -1,9 +1,10 @@
 // src/pages/HomePage.jsx
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import Layout from '../components/layout/Layout';
 import { fetchAiRecommendations } from '../api/ai';
+import { fetchMyPreferences } from '../api/preferences';
 
 /*
   Notes
@@ -13,6 +14,8 @@ import { fetchAiRecommendations } from '../api/ai';
 */
 
 function HomePage() {
+  const navigate = useNavigate();
+
   // data states
   const [usersMap, setUsersMap] = useState({});
   const [communityPosts, setCommunityPosts] = useState([]);
@@ -92,7 +95,7 @@ function HomePage() {
     []
   );
 
-  // ✅ Beginner 섹션 기본 후보 (AI 없을 때 fallback) - 최대 3개
+  // Beginner 섹션 기본 후보 (AI 없을 때 fallback) - 최대 3개
   const beginnerPicks = useMemo(
     () => DUMMY_SPOTS.filter((s) => s.skills.includes('Beginner')).slice(0, 3),
     [DUMMY_SPOTS]
@@ -101,7 +104,7 @@ function HomePage() {
   const [activeSeason, setActiveSeason] = useState('Spring');
   const [activeSkill, setActiveSkill] = useState('Beginner');
 
-  // ✅ 각 3개로 제한 (dummy 기반)
+  // 각 3개로 제한 (dummy 기반)
   const seasonalPicks = useMemo(
     () =>
       DUMMY_SPOTS.filter((s) => s.seasons.includes(activeSeason)).slice(0, 3),
@@ -163,13 +166,35 @@ function HomePage() {
     []
   );
 
+  // ✅ 설문 존재 여부 체크 (설문 없고, "다시 보지 않기"도 안 했으면 설문 페이지로 보냄)
+  useEffect(() => {
+    const checkPreferences = async () => {
+      try {
+        const skip = localStorage.getItem('survey_never_show');
+        if (skip === '1') return;
+
+        const prefs = await fetchMyPreferences();
+        if (!prefs) {
+          navigate('/settings/preferences');
+        }
+      } catch (e) {
+        console.error('Failed to check preferences:', e);
+      }
+    };
+
+    checkPreferences();
+  }, [navigate]);
+
+  // 기존 데이터 로딩
   useEffect(() => {
     const fetchAll = async () => {
       try {
         const usersRes = await api.get('/mypage/all/');
         const users = Array.isArray(usersRes.data) ? usersRes.data : [];
         const map = {};
-        users.forEach((u) => (map[u.id] = u.username));
+        users.forEach((u) => {
+          map[u.id] = u.username;
+        });
         setUsersMap(map);
 
         const [logsRes, topMembersRes, spotsRes, jobsRes] = await Promise.all([
@@ -262,7 +287,7 @@ function HomePage() {
 
   if (loading) return <p className="text-center mt-8">Loading...</p>;
 
-  // ✅ 최종 추천 리스트도 최대 3개 (AI 우선, 없으면 beginnerPicks)
+  // 최종 추천 리스트도 최대 3개 (AI 우선, 없으면 beginnerPicks)
   const recommendedSpots =
     personalizedSpots.length > 0
       ? personalizedSpots.slice(0, 3)
@@ -462,9 +487,7 @@ function HomePage() {
                 <p className="font-medium text-[14px]">
                   Add depth and bottom time
                 </p>
-                <p className="text-[12px] text-slate-600">
-                  Key metrics first.
-                </p>
+                <p className="text-[12px] text-slate-600">Key metrics first.</p>
               </li>
               <li className="rounded-md border-2 border-dashed border-gray-300 p-4 bg-gray-50 hover:border-slate-800 transition-colors">
                 <p className="text-[12px] font-semibold text-slate-800">
@@ -473,9 +496,7 @@ function HomePage() {
                 <p className="font-medium text-[14px]">
                   Attach photo and gear
                 </p>
-                <p className="text-[12px] text-slate-600">
-                  Make it memorable.
-                </p>
+                <p className="text-[12px] text-slate-600">Make it memorable.</p>
               </li>
             </ol>
             <div className="mt-4">
@@ -572,11 +593,7 @@ function HomePage() {
 
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {seasonalPicks.map((s) => (
-                <SpotCard
-                  key={`season-${s.id}`}
-                  spot={s}
-                  tagColor="emerald"
-                />
+                <SpotCard key={`season-${s.id}`} spot={s} tagColor="emerald" />
               ))}
             </div>
           </div>
@@ -655,9 +672,7 @@ function HomePage() {
               </h3>
               <ol className="mt-3 space-y-2">
                 {topMembers.length === 0 ? (
-                  <p className="text-slate-500 text-[13px]">
-                    No divers yet.
-                  </p>
+                  <p className="text-slate-500 text-[13px]">No divers yet.</p>
                 ) : (
                   topMembers.map((m, i) => (
                     <li
@@ -682,9 +697,7 @@ function HomePage() {
               </h3>
               <ol className="mt-3 space-y-2">
                 {theMostVisitedSpots.length === 0 ? (
-                  <p className="text-slate-500 text-[13px]">
-                    No spots yet.
-                  </p>
+                  <p className="text-slate-500 text-[13px]">No spots yet.</p>
                 ) : (
                   theMostVisitedSpots.map((s, i) => (
                     <li
@@ -968,7 +981,11 @@ function HomePage() {
                 className="px-3 py-1.5 bg-gray-200 rounded-md text-[13px] hover:bg-gray-300 transition-colors"
                 onClick={() => {
                   setModalOpen(false);
-                  setNewJob({ title: '', location: '', description: '' });
+                  setNewJob({
+                    title: '',
+                    location: '',
+                    description: '',
+                  });
                 }}
               >
                 Cancel
@@ -1178,22 +1195,26 @@ function SpotCard({ spot, tagColor = 'blue' }) {
           {spot.highlight}
         </p>
         <div className="mt-2 flex flex-wrap gap-1.5">
-          {(spot.seasons || []).slice(0, 2).map((t) => (
-            <span
-              key={t}
-              className="text-[11px] rounded-full bg-gray-100 text-slate-700 px-2 py-0.5 border border-gray-200"
-            >
-              {t}
-            </span>
-          ))}
-          {(spot.skills || []).slice(0, 2).map((t) => (
-            <span
-              key={t}
-              className="text-[11px] rounded-full bg-gray-50 text-slate-700 px-2 py-0.5 border border-gray-200"
-            >
-              {t}
-            </span>
-          ))}
+          {(spot.seasons || [])
+            .slice(0, 2)
+            .map((t) => (
+              <span
+                key={t}
+                className="text-[11px] rounded-full bg-gray-100 text-slate-700 px-2 py-0.5 border border-gray-200"
+              >
+                {t}
+              </span>
+            ))}
+          {(spot.skills || [])
+            .slice(0, 2)
+            .map((t) => (
+              <span
+                key={t}
+                className="text-[11px] rounded-full bg-gray-50 text-slate-700 px-2 py-0.5 border border-gray-200"
+              >
+                {t}
+              </span>
+            ))}
         </div>
         <div className="mt-2">
           <button

@@ -8,7 +8,12 @@ import authService from '../services/authService';
 import useUserStore from '../store/userStore';
 import { handleFormChange, getErrorMessage } from '../utils/formUtil';
 import { AUTH_ROUTES, AUTH_LABELS } from '../constants';
-import { fetchMyPreferences } from '../api/preferences'; // 🔹 추가
+import { fetchMyPreferences } from '../api/preferences'; // 🔹 설문 조회
+
+// 유저별 설문 스킵 키 생성
+function getSurveySkipKey(userId) {
+  return userId ? `survey_never_show_${userId}` : 'survey_never_show';
+}
 
 function SignInPage() {
   const [form, setForm] = useState({ email: '', password: '' });
@@ -22,13 +27,14 @@ function SignInPage() {
     if (loading) return;
     setLoading(true);
     setError('');
+
     try {
       const data = await authService.signin(form.email, form.password);
 
       // 로그인 성공 후 기본 정보 저장
       localStorage.setItem('email', data.email);
       localStorage.setItem('name', data.name);
-      localStorage.setItem('id', data.id);
+      localStorage.setItem('id', String(data.id));
       setUser({ id: data.id, email: data.email, name: data.name });
 
       // 🔹 로그인 후 설문/플래그 확인
@@ -41,13 +47,14 @@ function SignInPage() {
 
       let neverShow = false;
       try {
-        neverShow = localStorage.getItem('survey_never_show') === '1';
+        const skipKey = getSurveySkipKey(data.id);
+        neverShow = localStorage.getItem(skipKey) === '1';
       } catch (err) {
         console.error('failed to read survey_never_show', err);
       }
 
       // 1) 설문 객체가 없고
-      // 2) "다시 보지 않기"도 안 눌렀으면 → 설문 페이지로
+      // 2) 이 계정에 대해 "다시 보지 않기"도 안 눌렀으면 → 설문 페이지로
       if (!prefs && !neverShow) {
         navigate('/settings/preferences', { replace: true });
       } else {

@@ -74,28 +74,37 @@ function PreferencesSurveyPage() {
     setSaving(true);
     setError('');
 
+    // 1️⃣ 먼저 preferences 저장부터 확실히
     try {
-      // 1) preferences 저장 (prefId 있으면 PUT, 없으면 POST)
-      if (prefId) {
-        await updatePreferences(prefId, form);
+      let currentPrefId = prefId;
+
+      if (currentPrefId) {
+        await updatePreferences(currentPrefId, form);
       } else {
         const created = await createPreferences(form);
         if (created && created.id) {
+          currentPrefId = created.id;
           setPrefId(created.id);
         }
       }
-
-      // 2) AI 추천 재생성 (백엔드에서 PUT /ai/ 처리하도록 triggerAiUpdate 구현해둔 상태라고 가정)
-      await triggerAiUpdate();
-
-      // 3) 홈으로 이동
-      navigate('/home');
     } catch (err) {
-      console.error('❌ Failed to save preferences or update AI:', err);
+      console.error('❌ Failed to save preferences:', err);
       setError('Failed to save your preferences. Please try again.');
-    } finally {
       setSaving(false);
+      return;
     }
+
+    // 2️⃣ AI 추천 재생성은 "되면 좋은" 옵션 — 실패해도 넘어감
+    try {
+      await triggerAiUpdate();
+    } catch (err) {
+      console.error('⚠️ AI update failed, but preferences are saved:', err);
+      // 여기서는 별도 오류 메시지 안 띄움
+    }
+
+    // 3️⃣ 어쨌든 설문은 저장됐으니 홈으로 이동
+    setSaving(false);
+    navigate('/home');
   };
 
   // 스킵: 이번만
