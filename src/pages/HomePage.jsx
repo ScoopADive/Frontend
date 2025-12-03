@@ -111,11 +111,17 @@ function HomePage() {
     [DUMMY_SPOTS, activeSeason]
   );
 
-  const skillPicks = useMemo(
-    () =>
-      DUMMY_SPOTS.filter((s) => s.skills.includes(activeSkill)).slice(0, 3),
-    [DUMMY_SPOTS, activeSkill]
-  );
+  // 항상 3개가 나오도록 보충 로직 추가
+  const skillPicks = useMemo(() => {
+    const primary = DUMMY_SPOTS.filter((s) =>
+      s.skills.includes(activeSkill)
+    );
+    if (primary.length >= 3) {
+      return primary.slice(0, 3);
+    }
+    const extra = DUMMY_SPOTS.filter((s) => !primary.includes(s));
+    return [...primary, ...extra].slice(0, 3);
+  }, [DUMMY_SPOTS, activeSkill]);
 
   // --- AI recommendations: normalize for SpotCard ---
   // 백엔드 응답: { id, region, country, intro, created_at, user }
@@ -313,6 +319,7 @@ function HomePage() {
             </h1>
             <p className="mt-3 max-w-3xl text-[15px] md:text-[16px] leading-relaxed text-slate-600">
               Record your underwater adventures, connect with fellow divers, and
+              <br />
               discover the world&apos;s most incredible dive sites.
             </p>
 
@@ -651,7 +658,7 @@ function HomePage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {communityPosts.map((log) => (
+                  {communityPosts.slice(0, 5).map((log) => (
                     <FeedItem
                       key={log.id}
                       log={log}
