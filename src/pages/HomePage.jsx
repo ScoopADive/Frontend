@@ -13,6 +13,39 @@ import { fetchMyPreferences } from '../api/preferences';
     otherwise falls back to beginner-friendly dummy spots.
 */
 
+const COMMUNITY_BOARD_POSTS = [
+  {
+    id: 1,
+    title: 'Looking for dive buddy in Jeju!',
+    location: 'Jeju Island, Korea',
+    author: 'Suzy',
+  },
+  {
+    id: 2,
+    title: 'Dive instructor available for private lessons',
+    location: 'Bali, Indonesia',
+    author: 'James',
+  },
+  {
+    id: 3,
+    title: 'Photography tips for underwater shots?',
+    location: 'Online',
+    author: 'Emma',
+  },
+  {
+    id: 4,
+    title: 'Night dive group forming - Maldives',
+    location: 'Maldives',
+    author: 'Suzy',
+  },
+  {
+    id: 5,
+    title: 'Selling used dive equipment',
+    location: 'Seoul, Korea',
+    author: 'James',
+  },
+];
+
 function HomePage() {
   const navigate = useNavigate();
 
@@ -56,7 +89,7 @@ function HomePage() {
         name: 'Bali - Tulamben',
         country: 'Indonesia',
         highlight: 'USAT Liberty wreck',
-        seasons: ['Autumn', 'Winter', 'Summer'],
+        seasons: ['Autumn, Winter', 'Summer'],
         skills: ['Beginner', 'Specialty'],
       },
       {
@@ -113,9 +146,7 @@ function HomePage() {
 
   // 항상 3개가 나오도록 보충 로직 추가
   const skillPicks = useMemo(() => {
-    const primary = DUMMY_SPOTS.filter((s) =>
-      s.skills.includes(activeSkill)
-    );
+    const primary = DUMMY_SPOTS.filter((s) => s.skills.includes(activeSkill));
     if (primary.length >= 3) {
       return primary.slice(0, 3);
     }
@@ -270,7 +301,11 @@ function HomePage() {
   };
 
   const handleCreateJob = async () => {
-    if (!newJob.title || !newJob.location || !newJob.description) return;
+    if (!newJob.title || !newJob.location || !newJob.description) {
+      setCreating(true);
+      setCreating(false);
+      return;
+    }
     try {
       setCreating(true);
       const res = await api.post('/home/jobs/', newJob);
@@ -300,6 +335,17 @@ function HomePage() {
       : beginnerPicks;
 
   const usingAi = !aiLoading && personalizedSpots.length > 0;
+
+  // 커뮤니티 보드에 보여줄 전체 리스트 (더미 + 실제 작성 글)
+  const communityBoardItems = [
+    ...COMMUNITY_BOARD_POSTS,
+    ...jobs.map((job) => ({
+      id: `job-${job.id}`,
+      title: job.title,
+      location: job.location,
+      author: usersMap[job.user] ?? 'Unknown',
+    })),
+  ];
 
   return (
     <Layout>
@@ -723,6 +769,7 @@ function HomePage() {
               </ol>
             </div>
 
+            {/* Community Board - dummy styled like screenshot */}
             <div className="bg-white rounded-lg shadow-sm hover:shadow-md transition border border-gray-200 p-5">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg md:text-xl font-semibold text-slate-900">
@@ -735,35 +782,26 @@ function HomePage() {
                   Post
                 </button>
               </div>
-              <p className="text-slate-500 text-[13px] mt-3">
-                {jobs.length > 0
-                  ? 'Latest posts from the community'
-                  : 'No posts yet. Be the first to share!'}
-              </p>
 
-              {jobs.length > 0 && (
-                <div className="mt-3 space-y-2">
-                  {jobs.map((job) => (
-                    <div
-                      key={job.id}
-                      className="p-3 rounded-md border hover:shadow-sm transition"
-                    >
-                      <Link
-                        to={`/home/jobs/${job.id}`}
-                        className="font-medium text-slate-900 hover:underline"
-                      >
-                        {job.title}
-                      </Link>
-                      <p className="text-[13px] text-slate-600">
-                        {job.location}
-                      </p>
-                      <p className="text-[12px] text-slate-500">
-                        by {usersMap[job.user] ?? 'Unknown'}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div className="mt-4 space-y-3">
+                {communityBoardItems.slice(0, 4).map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="w-full text-left rounded-lg border border-gray-200 bg-white px-4 py-3 hover:border-slate-900 hover:shadow-md transition"
+                  >
+                    <p className="text-[14px] font-semibold text-slate-900">
+                      {item.title}
+                    </p>
+                    <p className="mt-1 text-[12px] text-slate-500">
+                      {item.location}
+                    </p>
+                    <p className="text-[12px] text-slate-500">
+                      by {item.author}
+                    </p>
+                  </button>
+                ))}
+              </div>
             </div>
           </aside>
         </div>
@@ -785,7 +823,7 @@ function HomePage() {
               type="button"
               className="hidden sm:inline-flex items-center rounded-md border border-gray-200 px-3 py-1.5 text-[13px] font-semibold text-slate-700 hover:bg-gray-50 hover:shadow-sm transition"
               onClick={() => {
-                // TODO: connect to real AI blog API if implemented
+                // connect to real AI blog API if implemented
               }}
             >
               Refresh with AI
