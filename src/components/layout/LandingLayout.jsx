@@ -1,8 +1,9 @@
-import PropTypes from 'prop-types';
+// LandingLayout.jsx
+import PropTypes from "prop-types";
 
 function LandingLayout({ children }) {
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background text-foreground font-inter antialiased">
       {children}
     </div>
   );
